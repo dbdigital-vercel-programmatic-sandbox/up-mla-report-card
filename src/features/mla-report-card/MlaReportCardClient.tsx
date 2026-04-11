@@ -533,7 +533,7 @@ function ItemDetail({
   translations,
   deeplink,
   contentTitle,
-  activeTab,
+  source,
   closeLabel,
   onClose,
   mode = "overlay",
@@ -542,7 +542,7 @@ function ItemDetail({
   translations: MlaTranslations
   deeplink: string
   contentTitle: string
-  activeTab: string
+  source: string
   closeLabel: string
   onClose: () => void
   mode?: "overlay" | "inline"
@@ -566,7 +566,7 @@ function ItemDetail({
                   shareMla({
                     deeplink,
                     contentTitle,
-                    source: activeTab,
+                    source,
                     category: "MLA Page",
                     subSource: item.cardDetails.subTitle,
                     constituencyName:
@@ -672,7 +672,7 @@ function ItemDetail({
               shareMla({
                 deeplink,
                 contentTitle,
-                source: activeTab,
+                source,
                 category: "MLA Page",
                 subSource: item.cardDetails.subTitle,
                 constituencyName: item.cardDetails.subTitle.split(",")[0] ?? "",
@@ -707,12 +707,14 @@ function Tab4Section({
   campaignId,
   campaignData,
   translations,
+  source,
   openDropdownId,
   onToggleDropdown,
 }: {
   campaignId: string
   campaignData: MlaCampaignData
   translations: MlaTranslations
+  source: string
   openDropdownId: string | null
   onToggleDropdown: (id: string | null) => void
 }) {
@@ -941,7 +943,7 @@ function Tab4Section({
               shareMla({
                 deeplink: campaignData.meta.day4Deeplink,
                 contentTitle: campaignData.meta.title,
-                source: "4",
+                source,
                 category: "MLA Page",
                 subSource:
                   progressItem.title ?? selectedItem.cardDetails.subTitle,
@@ -1098,12 +1100,13 @@ export function MlaReportCardClient({
   const activeTab = searchParams.get("activeTab") ?? "4"
   const selectedVidhanId = searchParams.get("vidhan")
   const openDropdownId = searchParams.get("dropdown")
-  const sourceParam = searchParams.get("source") ?? "default"
+  const resolvedSource = searchParams.get("source")
+  const sourceForEvents = resolvedSource || activeTab
 
   useEffect(() => {
-    triggerContentOpenedEvent(sourceParam, campaignData.meta.title)
-    triggerContentConsumedEvent(sourceParam, campaignData.meta.title)
-  }, [campaignData.meta.title, sourceParam])
+    triggerContentOpenedEvent(sourceForEvents, campaignData.meta.title)
+    triggerContentConsumedEvent(sourceForEvents, campaignData.meta.title)
+  }, [campaignData.meta.title, sourceForEvents])
 
   const selectedSeatDetails = selectedVidhanId
     ? getSelectedSeat(selectedVidhanId, campaignData, translations)
@@ -1160,7 +1163,7 @@ export function MlaReportCardClient({
               shareCommon({
                 deeplink: campaignData.meta.deeplink,
                 contentTitle: campaignData.meta.title,
-                source: activeTab,
+                source: sourceForEvents,
                 category: "Header Video",
                 subSource: "Inside Graphic",
                 translations,
@@ -1184,7 +1187,7 @@ export function MlaReportCardClient({
             onSelectionChange={(title) =>
               triggerContentItemClickedEvent({
                 contentTitle: campaignData.meta.title,
-                source: activeTab,
+                source: sourceForEvents,
                 subSource: title,
                 category: "Filters",
               })
@@ -1193,7 +1196,7 @@ export function MlaReportCardClient({
               shareCommon({
                 deeplink: campaignData.meta.deeplink,
                 contentTitle: campaignData.meta.title,
-                source: activeTab,
+                source: sourceForEvents,
                 category: block.data.title,
                 subSource: "Inside Graphic",
                 translations,
@@ -1302,6 +1305,7 @@ export function MlaReportCardClient({
             campaignId={campaignId}
             campaignData={campaignData}
             translations={translations}
+            source={sourceForEvents}
             openDropdownId={openDropdownId}
             onToggleDropdown={(id) =>
               updateSearchParams({ dropdown: id }, id ? "push" : "replace")
@@ -1356,7 +1360,7 @@ export function MlaReportCardClient({
               shareCommon({
                 deeplink: campaignData.meta.deeplink,
                 contentTitle: campaignData.meta.title,
-                source: activeTab,
+                source: sourceForEvents,
                 category: activeTab,
                 subSource: "Top Sharing button",
                 translations,
@@ -1389,7 +1393,7 @@ export function MlaReportCardClient({
                     contentTitle: campaignData.meta.title,
                     category: "Top Buttons",
                     subSource: tab.id,
-                    source: activeTab,
+                    source: sourceForEvents,
                   })
                   updateSearchParams({ activeTab: tab.id }, "replace")
                 }}
@@ -1417,7 +1421,7 @@ export function MlaReportCardClient({
               : campaignData.meta.day4Deeplink
           }
           contentTitle={campaignData.meta.title}
-          activeTab={activeTab}
+          source={sourceForEvents}
           closeLabel={translations.close}
           onClose={() => updateSearchParams({ vidhan: null }, "replace")}
         />
