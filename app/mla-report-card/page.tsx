@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic"
 
 const STATE_CODES = ["mp", "up", "rj", "cg"] as const
 
-export default async function Page() {
+export default async function MlaReportCardLandingPage() {
   return (
     <main
       style={{ minHeight: "100vh", padding: "24px", background: "#fafafa" }}
