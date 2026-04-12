@@ -186,7 +186,8 @@ export function TapHandIcon({ className, style }: IconProps) {
           <rect width="56" height="56" fill="white" />
         </clipPath>
       </defs>
-    </svg>)
+    </svg>
+  )
 }
 
 export function PlayIcon({ className, style }: IconProps) {

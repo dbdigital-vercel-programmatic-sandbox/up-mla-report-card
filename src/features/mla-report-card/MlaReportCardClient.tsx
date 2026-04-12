@@ -29,6 +29,7 @@ import {
   renderTemplateContent,
   shareCommon,
   shareMla,
+  triggerContentFilterAddedEvent,
   triggerContentConsumedEvent,
   triggerContentItemClickedEvent,
   triggerContentOpenedEvent,
@@ -1026,6 +1027,10 @@ function Tab4Section({
                       type="button"
                       className={styles.sheetOption}
                       onClick={() => {
+                        triggerContentFilterAddedEvent({
+                          source,
+                          district: district.englishName,
+                        })
                         setSelectedDistrictId(district.id)
                         setSelectedSeatId(null)
                         window.sessionStorage.setItem(
