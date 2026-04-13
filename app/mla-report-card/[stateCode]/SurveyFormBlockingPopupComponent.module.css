@@ -1,0 +1,216 @@
+.container {
+  height: 100vh;
+  width: 100%;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  background: var(--background-color-main);
+}
+
+.closeIcon {
+  display: block;
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  width: 40px;
+  height: 40px;
+  background: #b4b4b4;
+  border-radius: 50%;
+  --foreground-color: #fff;
+  cursor: pointer;
+  z-index: var(--z-index-2);
+}
+
+.wrapperBox {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  justify-content: space-between;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 1024px;
+  z-index: var(--z-index-2);
+}
+
+.imageBox {
+  width: 600px;
+  border-radius: 12px;
+  border: 1px solid #eaeaea;
+}
+
+.bannerImg {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.contentBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 310px;
+}
+
+.logo {
+  position: relative;
+  z-index: var(--z-index-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: solid 2px var(--border-color);
+  border-radius: 20px;
+  width: 96px;
+  height: 96px;
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+.logoImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.text {
+  display: block;
+  color: var(--primary-color);
+  white-space: pre-line;
+  text-align: center;
+  font-size: 24px;
+  line-height: 36px;
+  margin-top: 24px;
+  font-weight: var(--font-weight-bold);
+}
+
+.appDownloadScanner {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 16px;
+  background: var(--border-color);
+  border-radius: 8px;
+  gap: 16px;
+}
+
+.qrCode {
+  flex: 0 0 126px;
+  padding: 4px;
+  background: #ffffff;
+  height: 126px;
+  width: 126px;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.storeInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 126px;
+  max-height: 126px;
+}
+
+.appText {
+  text-align: left;
+  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  line-height: normal;
+  color: var(--primary-color);
+  padding-bottom: 0;
+}
+
+.storeBadge {
+  display: block;
+  height: 39px;
+}
+
+.storeBadge svg {
+  display: block;
+  height: 39px;
+  width: auto;
+}
+
+.updateBtn {
+  display: none;
+  width: 100%;
+  margin-top: 24px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 28px;
+  border-radius: 8px;
+  background: var(--secondary-common-color);
+  padding: 10px 16px;
+  color: var(--white-color);
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+
+@media only screen and (max-width: 768px) {
+  .closeIcon {
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .wrapperBox {
+    max-width: 100%;
+    min-width: 320px;
+    padding: 0 24px;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .imageBox {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #eaeaea;
+  }
+
+  .bannerImg {
+    display: block;
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  .contentBox {
+    max-width: 100%;
+    min-width: 320px;
+  }
+
+  .logo {
+    display: none;
+    background: var(--background-color-main);
+    width: 84px;
+    height: 83px;
+    padding: 2px;
+  }
+
+  .logoImg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .text {
+    margin-top: 16px;
+    font-size: 16px;
+    line-height: 28px;
+  }
+
+  .appDownloadScanner {
+    display: none;
+  }
+
+  .updateBtn {
+    display: block;
+  }
+}

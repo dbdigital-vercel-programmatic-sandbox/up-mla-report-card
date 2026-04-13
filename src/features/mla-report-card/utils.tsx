@@ -161,6 +161,28 @@ export function triggerContentItemClickedEvent(clickedEvent: {
   bridge.trackMixpanelEvent(payload)
 }
 
+export function triggerContentFilterAddedEvent(filterEvent: {
+  source: string
+  district: string
+}) {
+  if (!bridge.isWebview || !bridge.methodExists(["trackMixpanelEvent"]).or) {
+    return
+  }
+
+  const payload = {
+    event: "Interactive Content Filter Added",
+    properties: {
+      Source: filterEvent.source,
+      "Content Type": CONTENT_TYPE,
+      "Content Title": "UP Pradhan Result",
+      District: filterEvent.district,
+    },
+  }
+
+  console.log(payload)
+  bridge.trackMixpanelEvent(payload)
+}
+
 export function shareCommon(args: {
   deeplink: string
   contentTitle: string
