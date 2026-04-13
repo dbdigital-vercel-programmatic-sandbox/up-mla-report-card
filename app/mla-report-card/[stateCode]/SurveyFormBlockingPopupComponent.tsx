@@ -330,8 +330,8 @@ const SurveyFormBlockingPopupComponent = () => {
   const params = useParams()
 
   const qrCodeImg =
-    "https://images.bhaskarassets.com/thumb/800x0/web2images/web-frontend/mla-report-card/UP_MLA_Results_QR-code-pos-hi.jpeg"
-  const link = "/download-app"
+    "https://images.bhaskarassets.com/thumb/800x0/web2images/web-frontend/mla-report-card/UPMLASurveyResult2026_QR-code.jpeg"
+  const link = "https://dainik.bhaskar.com/oOorT3Mij2b"
   const text =
     "भास्कर सर्वे का रिजल्ट सिर्फ एप पर ही देख सकते हैं। रिजल्ट जानने के लिए एप डाउनलोड करें। "
   const ogImageUrl =

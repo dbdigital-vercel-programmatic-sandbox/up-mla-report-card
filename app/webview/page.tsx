@@ -3,7 +3,7 @@ import Link from "next/link"
 export const dynamic = "force-dynamic"
 
 export default async function WebviewPage() {
-  const campaignIds = [22,23];
+  const campaignIds = [17];
 
   return (
     <main

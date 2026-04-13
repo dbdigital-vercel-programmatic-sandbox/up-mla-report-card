@@ -21,6 +21,7 @@ export default async function MlaReportCardPage({
     `https://www.bhaskar.com/__static__/2.0/mla-report-card/campaign-${campaignId}.json`,
     {
       cache: "no-store",
+      method: "GET"
     }
   )
 
