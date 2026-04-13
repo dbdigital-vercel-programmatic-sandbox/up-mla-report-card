@@ -1,11 +1,9 @@
 import Link from "next/link"
 
-import { getAvailableCampaignIds } from "@/src/features/mla-report-card/data"
-
 export const dynamic = "force-dynamic"
 
 export default async function WebviewPage() {
-  const campaignIds = await getAvailableCampaignIds()
+  const campaignIds = [22,23];
 
   return (
     <main
