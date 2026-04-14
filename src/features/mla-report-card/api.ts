@@ -14,14 +14,12 @@ export type UserPreferenceCity = {
 
 export async function fetchSurveyAttemptResponse(
   campaignId: string,
-  userCredentials: UserCredentials,
-  apiBaseUrl: string,
-  xAutT: string
+  userCredentials: UserCredentials
 ) {
   const headers = new Headers()
 
   headers.set("at", userCredentials.auth_token)
-  headers.set("x-aut-t", xAutT)
+  headers.set("x-aut-t", "a6oaq3edtz59")
   headers.set("a-ver-code", "600")
   headers.set("deviceid", userCredentials.user?.unique_id || "")
   headers.set("msisdn", userCredentials.user?.phone_number || "")
@@ -30,7 +28,7 @@ export async function fetchSurveyAttemptResponse(
   const response = await fetch(
     new URL(
       `/api/1.0/web-backend/survey/vidhan/${campaignId}/response`,
-      apiBaseUrl
+      "https://prod.bhaskarapi.com"
     ).toString(),
     {
       method: "GET",
@@ -47,13 +45,12 @@ export async function fetchSurveyAttemptResponse(
 
 export async function fetchUserPreferenceCities(
   stateIds: number[],
-  userCredentials: UserCredentials,
-  xAutT: string
+  userCredentials: UserCredentials
 ) {
   const headers = new Headers()
 
   headers.set("at", userCredentials.auth_token)
-  headers.set("x-aut-t", xAutT)
+  headers.set("x-aut-t", "a6oaq3edtz59")
   headers.set("a-ver-code", "600")
   headers.set("cid", "521")
   headers.set("dtyp", "web")
