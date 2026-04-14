@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 
-import { bridge } from "@/bridge"
+import { useWebviewContext } from "@/bridge"
 
 import { fetchSurveyAttemptResponse, fetchUserPreferenceCities } from "./api"
 import type { District, UserResponse } from "./types"
@@ -28,6 +28,8 @@ export function usePrefillDistrictsAndSeat({
   setDistrict,
   setVidhanSeat,
 }: UsePrefillDistrictsAndSeatArgs) {
+  const { getAppUserData, getUserSelectedPreferences, methodExists } =
+    useWebviewContext()
   const districtStorageKey = `selectedFirstOption-campaign-${campaignId}`
   const seatStorageKey = `selectedSecondOption-campaign-${campaignId}`
   const hasAutoSelectedDistrictRef = useRef(false)
@@ -61,7 +63,7 @@ export function usePrefillDistrictsAndSeat({
         window.localStorage.getItem(districtStorageKey)
       )
       const hasLocalSeat = Boolean(window.localStorage.getItem(seatStorageKey))
-      const canReadAppUserData = bridge.methodExists(["getAppUserData"]).or
+      const canReadAppUserData = methodExists(["getAppUserData"]).or
 
       if (hasLocalDistrict && hasLocalSeat) {
         setCanRunPreferencesFallback(true)
@@ -74,7 +76,7 @@ export function usePrefillDistrictsAndSeat({
       }
 
       try {
-        const userData = await bridge.getAppUserData()
+        const userData = await getAppUserData()
         const endpoint = new URL(
           `/api/1.0/web-backend/survey/vidhan/${campaignId}/response`,
           "https://prod.bhaskarapi.com"
@@ -150,6 +152,8 @@ export function usePrefillDistrictsAndSeat({
   }, [
     campaignId,
     districtStorageKey,
+    getAppUserData,
+    methodExists,
     seatStorageKey,
     setDistrict,
     setVidhanSeat,
@@ -167,17 +171,15 @@ export function usePrefillDistrictsAndSeat({
         return
       }
 
-      const canReadPreferences = bridge.methodExists([
-        "getUserSelectedPreferences",
-      ]).or
-      const canReadAppUserData = bridge.methodExists(["getAppUserData"]).or
+      const canReadPreferences = methodExists(["getUserSelectedPreferences"]).or
+      const canReadAppUserData = methodExists(["getAppUserData"]).or
 
       if (!canReadPreferences || !canReadAppUserData) {
         return
       }
 
       try {
-        const preferences = await bridge.getUserSelectedPreferences()
+        const preferences = await getUserSelectedPreferences()
         const preferredStates = Array.isArray(preferences?.states)
           ? preferences.states
           : []
@@ -189,7 +191,7 @@ export function usePrefillDistrictsAndSeat({
           return
         }
 
-        const appUserData = await bridge.getAppUserData()
+        const appUserData = await getAppUserData()
         const prefsCitiesJson = await fetchUserPreferenceCities(
           preferredStates,
           appUserData
@@ -256,7 +258,15 @@ export function usePrefillDistrictsAndSeat({
     return () => {
       isCancelled = true
     }
-  }, [canRunPreferencesFallback, districtStorageKey, districts, setDistrict])
+  }, [
+    canRunPreferencesFallback,
+    districtStorageKey,
+    districts,
+    getAppUserData,
+    getUserSelectedPreferences,
+    methodExists,
+    setDistrict,
+  ])
 
   return { userResponse, districtStorageKey, seatStorageKey }
 }

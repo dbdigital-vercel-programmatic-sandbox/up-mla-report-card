@@ -138,6 +138,48 @@ interface IAppUserData {
   }
 }
 
+interface IUserSelectedPreferences {
+  categories: number[]
+  states: number[]
+  cities: number[]
+}
+
+type TrackingPayload = Record<string, unknown>
+
+type TAvailableMethods =
+  | "closeScreenV2"
+  | "closeScreen"
+  | "getAppUserData"
+  | "getAppUserDataV2"
+  | "getUserSelectedPreferences"
+  | "enablePullToRefresh"
+  | "openViaDeepLinkJsonData"
+  | "shareArticle"
+  | "shareArticleV2"
+  | "trackMixpanelEvent"
+  | "trackInteractivePage"
+  | "openFullWeb"
+
+const methodExists = (methods: TAvailableMethods[]) => {
+  const rawData = methods.map((method) => {
+    if (typeof android?.[method] === "function") {
+      return android[method]
+    }
+
+    if (ios?.[method]?.postMessage) {
+      return ios[method]
+    }
+
+    return undefined
+  })
+
+  return {
+    rawData,
+    and: rawData.every(Boolean),
+    or: rawData.some(Boolean),
+  }
+}
+
 const getAppUserData = (): Promise<IAppUserData> => {
   return new Promise((resolve) => {
     if (isAndroidClient) {
@@ -159,6 +201,38 @@ const getAppUserData = (): Promise<IAppUserData> => {
     }
 
     ios.getAppUserData.postMessage({ callback })
+  })
+}
+
+const getUserSelectedPreferences = (): Promise<IUserSelectedPreferences> => {
+  return new Promise((resolve) => {
+    if (isAndroidClient) {
+      if (android.getUserSelectedPreferences) {
+        resolve(JSON.parse(android.getUserSelectedPreferences()))
+        return null
+      }
+
+      resolve({ categories: [], states: [], cities: [] })
+      return null
+    }
+
+    const callback = getUniqueCallbackMethod((res) => {
+      resolve(
+        (res ?? {
+          categories: [],
+          states: [],
+          cities: [],
+        }) as IUserSelectedPreferences
+      )
+      return ""
+    })
+
+    if (ios.getUserSelectedPreferences) {
+      ios.getUserSelectedPreferences.postMessage({ callback })
+      return null
+    }
+
+    resolve({ categories: [], states: [], cities: [] })
   })
 }
 
@@ -203,6 +277,98 @@ const openViaDeepLinkJsonData = (jsonData: any) => {
   }
 }
 
+const trackMixpanelEvent = (payload: TrackingPayload) => {
+  const event = {
+    ...payload,
+    properties: {
+      Platform: "Web",
+      ...((payload.properties as Record<string, unknown> | undefined) ?? {}),
+    },
+  }
+
+  try {
+    if (isAndroidClient) {
+      if (android.trackMixpanelEvent) {
+        android.trackMixpanelEvent(JSON.stringify(event))
+      }
+      return
+    }
+
+    if (ios.trackMixpanelEvent) {
+      ios.trackMixpanelEvent.postMessage(event)
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const trackInteractivePage = (jsonData: TrackingPayload) => {
+  try {
+    if (isAndroidClient) {
+      if (android.trackInteractivePage) {
+        android.trackInteractivePage(JSON.stringify(jsonData))
+      }
+      return
+    }
+
+    if (ios.trackInteractivePage) {
+      ios.trackInteractivePage.postMessage(jsonData)
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const shareArticle = (
+  storyUrl: string,
+  title: string,
+  imageUrl: string,
+  categoryName: string,
+  overrideTemplate?: string,
+  hasWatermark?: boolean
+) => {
+  if (isAndroidClient) {
+    if (android.shareArticleV2) {
+      android.shareArticleV2(
+        JSON.stringify({
+          storyUrl,
+          title,
+          imageUrl,
+          categoryName,
+          overrideTemplate,
+          hasWatermark,
+        })
+      )
+      return
+    }
+
+    if (android.shareArticle) {
+      android.shareArticle(storyUrl, title, imageUrl)
+    }
+
+    return
+  }
+
+  if (ios.shareArticleV2) {
+    ios.shareArticleV2.postMessage({
+      storyUrl,
+      title,
+      imageUrl,
+      categoryName,
+      overrideTemplate,
+      hasWatermark,
+    })
+    return
+  }
+
+  if (ios.shareArticle) {
+    ios.shareArticle.postMessage({ storyUrl, title, imageUrl })
+    return
+  }
+
+  navigator.share?.({ text: overrideTemplate ?? `${title}${storyUrl}` })
+}
+
 /**
  * Trigger native share sheet.
  * @param imageUrl      — optional image to share
@@ -238,11 +404,27 @@ interface WebviewContextValue {
   isAndroidClient: boolean
   isIOSClient: boolean
   getAppUserData: () => Promise<IAppUserData>
+  getUserSelectedPreferences: () => Promise<IUserSelectedPreferences>
   closeScreen: () => void
   enablePullToRefresh: (val: boolean) => void
   openViaDeepLinkJsonData: (jsonData: any) => void
   triggerLogin: (params: { loginMessage: string; source: string }) => void
   shareView: (params: { imageUrl?: string; shareTextAndLink?: string }) => void
+  shareArticle: (
+    storyUrl: string,
+    title: string,
+    imageUrl: string,
+    categoryName: string,
+    overrideTemplate?: string,
+    hasWatermark?: boolean
+  ) => void
+  trackMixpanelEvent: (payload: TrackingPayload) => void
+  trackInteractivePage: (payload: TrackingPayload) => void
+  methodExists: (methods: TAvailableMethods[]) => {
+    rawData: unknown[]
+    and: boolean
+    or: boolean
+  }
 }
 
 const WebviewContext = createContext<WebviewContextValue | null>(null)
@@ -270,21 +452,55 @@ const mockContextValue: WebviewContextValue = {
         photo_url: "",
       },
     }),
+  getUserSelectedPreferences: () =>
+    Promise.resolve({ categories: [], states: [], cities: [] }),
   closeScreen: () => {
     globalThis.window?.history?.back()
   },
-  enablePullToRefresh: () => {
-    throw new Error("enablePullToRefresh is not available in mock mode")
+  enablePullToRefresh: () => {},
+  openViaDeepLinkJsonData: (jsonData) => {
+    console.log("openViaDeepLinkJsonData mock", jsonData)
   },
-  openViaDeepLinkJsonData: () => {
-    throw new Error("openViaDeepLinkJsonData is not available in mock mode")
+  triggerLogin: (params) => {
+    console.log("triggerLogin mock", params)
   },
-  triggerLogin: () => {
-    throw new Error("triggerLogin is not available in mock mode")
+  shareView: async (params) => {
+    const shareText = params.shareTextAndLink
+
+    if (shareText && navigator.share) {
+      await navigator.share({ text: shareText })
+      return
+    }
+
+    console.log("shareView mock", params)
   },
-  shareView: () => {
-    throw new Error("shareView is not available in mock mode")
+  shareArticle: async (
+    storyUrl,
+    title,
+    _imageUrl,
+    _categoryName,
+    overrideTemplate
+  ) => {
+    const shareText = overrideTemplate ?? `${title}${storyUrl}`
+
+    if (navigator.share) {
+      await navigator.share({ text: shareText })
+      return
+    }
+
+    console.log("shareArticle mock", shareText)
   },
+  trackMixpanelEvent: (payload) => {
+    console.log("trackMixpanelEvent mock", payload)
+  },
+  trackInteractivePage: (payload) => {
+    console.log("trackInteractivePage mock", payload)
+  },
+  methodExists: (methods) => ({
+    rawData: methods.map(() => undefined),
+    and: false,
+    or: false,
+  }),
 }
 
 export function WebviewProvider({
@@ -311,11 +527,16 @@ export function WebviewProvider({
               isAndroidClient,
               isIOSClient,
               getAppUserData,
+              getUserSelectedPreferences,
               closeScreen,
               enablePullToRefresh,
               openViaDeepLinkJsonData,
               triggerLogin,
               shareView,
+              shareArticle,
+              trackMixpanelEvent,
+              trackInteractivePage,
+              methodExists,
             }
           : mockContextValue
       }
