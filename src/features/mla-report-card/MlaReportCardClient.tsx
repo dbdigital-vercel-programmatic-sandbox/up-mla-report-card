@@ -2,14 +2,12 @@
 "use client"
 
 import type { CSSProperties, ReactNode } from "react"
-import { useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { bridge } from "@/bridge"
 
-import { fetchSurveyAttemptResponse, fetchUserPreferenceCities } from "./api"
 import arrowDownIcon from "./assets/arrow-down.svg"
-import { MLA_SURVEY_API_BASE_URL, X_AUT_T } from "./config"
 import {
   ArrowIcon,
   BackIcon,
@@ -34,6 +32,7 @@ import {
   triggerContentItemClickedEvent,
   triggerContentOpenedEvent,
 } from "./utils"
+import { usePrefillDistrictsAndSeat } from "./usePrefillDistrictsAndSeat"
 import type {
   ContentBlock,
   District,
@@ -43,7 +42,6 @@ import type {
   MlaCampaignData,
   MlaTranslations,
   ProgressDetails,
-  UserResponse,
 } from "./types"
 
 type Props = {
@@ -105,14 +103,6 @@ function formatDuration(seconds?: number) {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins}:${secs.toString().padStart(2, "0")}`
-}
-
-function normalizeText(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "")
-}
-
-function getCityLevelListingUrl(value: string) {
-  return value.trim().toLowerCase().replace(/\/+$/, "")
 }
 
 function ProgressReport({
@@ -727,230 +717,18 @@ function Tab4Section({
   openDropdownId: string | null
   onToggleDropdown: (id: string | null) => void
 }) {
-  const { getAppUserData } = bridge
-  const districtStorageKey = `selectedFirstOption-campaign-${campaignId}`
-  const seatStorageKey = `selectedSecondOption-campaign-${campaignId}`
-  const hasAutoSelectedDistrictRef = useRef(false)
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(
     null
   )
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null)
-  const [userResponse, setUserResponse] = useState<UserResponse | null>(null)
   const [districtSearch, setDistrictSearch] = useState("")
-  const [canRunPreferencesFallback, setCanRunPreferencesFallback] =
-    useState(false)
-
-  useEffect(() => {
-    const storedDistrict = window.localStorage.getItem(districtStorageKey)
-    const storedSeat = window.localStorage.getItem(seatStorageKey)
-    const parsedDistrict = storedDistrict ? Number(storedDistrict) : null
-    const parsedSeat = storedSeat ? Number(storedSeat) : null
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedDistrictId(
-      parsedDistrict !== null && !Number.isNaN(parsedDistrict)
-        ? parsedDistrict
-        : null
-    )
-    setSelectedSeatId(
-      parsedSeat !== null && !Number.isNaN(parsedSeat) ? parsedSeat : null
-    )
-    hasAutoSelectedDistrictRef.current = false
-    setCanRunPreferencesFallback(false)
-  }, [districtStorageKey, seatStorageKey])
-
-  useEffect(() => {
-    let cancelled = false
-
-    const loadUserResponse = async () => {
-      const hasLocalDistrict = Boolean(
-        window.localStorage.getItem(districtStorageKey)
-      )
-      const hasLocalSeat = Boolean(window.localStorage.getItem(seatStorageKey))
-
-      if (hasLocalDistrict && hasLocalSeat) {
-        setCanRunPreferencesFallback(true)
-        return
-      }
-
-      try {
-        const userData = await getAppUserData()
-        const endpoint = new URL(
-          `/api/1.0/web-backend/survey/vidhan/${campaignId}/response`,
-          MLA_SURVEY_API_BASE_URL
-        ).toString()
-
-        console.log({
-          event: "Survey User Response API Request",
-          properties: {
-            campaignId,
-            endpoint,
-            headers: {
-              at: userData.auth_token,
-              "x-aut-t": X_AUT_T,
-              "a-ver-code": "600",
-              deviceid: userData.user?.unique_id ?? "",
-              msisdn: userData.user?.phone_number ?? "",
-              cid: "521",
-              "x-aut-web-t": "420x66695ztde3qao6a69",
-              dtyp: "web",
-            },
-          },
-        })
-
-        const json = (await fetchSurveyAttemptResponse(
-          campaignId,
-          userData,
-          MLA_SURVEY_API_BASE_URL,
-          X_AUT_T
-        )) as UserResponse
-
-        console.log({
-          event: "Survey User Response API Response",
-          properties: {
-            campaignId,
-            status: 200,
-            data: json,
-          },
-        })
-
-        if (cancelled) {
-          return
-        }
-
-        setUserResponse(json)
-
-        if (json.hasAttempted) {
-          if (!hasLocalDistrict && json.response?.district) {
-            setSelectedDistrictId(json.response.district)
-            window.localStorage.setItem(
-              districtStorageKey,
-              json.response.district.toString()
-            )
-          }
-
-          if (!hasLocalSeat && json.response?.vidhanSeat) {
-            setSelectedSeatId(json.response.vidhanSeat)
-            window.localStorage.setItem(
-              seatStorageKey,
-              json.response.vidhanSeat.toString()
-            )
-          }
-        }
-      } catch {
-        return
-      } finally {
-        setCanRunPreferencesFallback(true)
-      }
-    }
-
-    void loadUserResponse()
-
-    return () => {
-      cancelled = true
-    }
-  }, [campaignId, districtStorageKey, getAppUserData, seatStorageKey])
-
-  useEffect(() => {
-    let isCancelled = false
-
-    const autoSelectDistrictFromUserPreferences = async () => {
-      if (
-        !canRunPreferencesFallback ||
-        hasAutoSelectedDistrictRef.current ||
-        selectedDistrictId != null ||
-        window.localStorage.getItem(districtStorageKey)
-      ) {
-        return
-      }
-
-      try {
-        const preferences = await bridge.getUserSelectedPreferences()
-        const preferredStates = Array.isArray(preferences?.states)
-          ? preferences.states
-          : []
-        const preferredCities = Array.isArray(preferences?.cities)
-          ? preferences.cities
-          : []
-
-        if (preferredStates.length === 0 || preferredCities.length === 0) {
-          return
-        }
-
-        const appUserData = await bridge.getAppUserData()
-        const prefsCitiesJson = await fetchUserPreferenceCities(
-          preferredStates,
-          appUserData,
-          X_AUT_T
-        )
-        const apiCities = Array.isArray(prefsCitiesJson?.cities)
-          ? prefsCitiesJson.cities
-          : []
-
-        if (apiCities.length === 0) {
-          return
-        }
-
-        const matchedPreferredCity = apiCities.find((city) =>
-          preferredCities.includes(Number(city.id))
-        )
-
-        if (!matchedPreferredCity?.listingUrl) {
-          return
-        }
-
-        const cityLevelListingUrl = getCityLevelListingUrl(
-          matchedPreferredCity.listingUrl
-        )
-        const cityLevelObject = apiCities.find(
-          (city) =>
-            getCityLevelListingUrl(city.listingUrl) === cityLevelListingUrl
-        )
-        const cityEngName = cityLevelObject?.engName
-
-        if (!cityEngName) {
-          return
-        }
-
-        const normalizedCityName = normalizeText(cityEngName)
-        const matchedDistrict = campaignData.districts.find((district) => {
-          const districtName =
-            district.district_english_name || district.district_name || ""
-          const normalizedDistrictName = normalizeText(districtName)
-
-          return (
-            normalizedDistrictName === normalizedCityName ||
-            normalizedDistrictName.includes(normalizedCityName) ||
-            normalizedCityName.includes(normalizedDistrictName)
-          )
-        })
-
-        if (!matchedDistrict || isCancelled) {
-          return
-        }
-
-        hasAutoSelectedDistrictRef.current = true
-        setSelectedDistrictId(matchedDistrict.id)
-        window.localStorage.setItem(
-          districtStorageKey,
-          matchedDistrict.id.toString()
-        )
-      } catch (error) {
-        console.error(error)
-      }
-    }
-
-    void autoSelectDistrictFromUserPreferences()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [
-    canRunPreferencesFallback,
-    campaignData.districts,
-    districtStorageKey,
-    selectedDistrictId,
-  ])
+  const { userResponse, districtStorageKey, seatStorageKey } =
+    usePrefillDistrictsAndSeat({
+      campaignId,
+      districts: campaignData.districts,
+      setDistrict: setSelectedDistrictId,
+      setVidhanSeat: setSelectedSeatId,
+    })
 
   const districtOptions = useMemo(
     () =>
