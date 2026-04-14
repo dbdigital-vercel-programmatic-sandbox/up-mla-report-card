@@ -19,6 +19,9 @@ export async function fetchSurveyAttemptResponse(
   headers.set("a-ver-code", "600")
   headers.set("deviceid", userCredentials.user?.unique_id || "")
   headers.set("msisdn", userCredentials.user?.phone_number || "")
+  headers.set("cid", "521")
+
+
 
   const response = await fetch(
     new URL(
