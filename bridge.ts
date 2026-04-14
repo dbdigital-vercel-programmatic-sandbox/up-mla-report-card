@@ -17,6 +17,12 @@ type LegacyAppUserData = {
   }
 }
 
+type UserSelectedPreferences = {
+  categories: number[]
+  states: number[]
+  cities: number[]
+}
+
 type LegacyMethodCheck = {
   or: boolean
   and: boolean
@@ -160,6 +166,54 @@ export const bridge = {
         }
 
         resolve({ auth_token: "" })
+      } catch (error) {
+        reject(error)
+      }
+    })
+  },
+
+  getUserSelectedPreferences() {
+    const { android, ios } = getNativeClients()
+
+    return new Promise<UserSelectedPreferences>((resolve, reject) => {
+      try {
+        if (typeof android?.getUserSelectedPreferences === "function") {
+          const response = android.getUserSelectedPreferences()
+          if (typeof response === "string") {
+            resolve(JSON.parse(response) as UserSelectedPreferences)
+            return
+          }
+
+          resolve(
+            (response ?? {
+              categories: [],
+              states: [],
+              cities: [],
+            }) as UserSelectedPreferences
+          )
+          return
+        }
+
+        const callback = getUniqueCallbackMethod((res) => {
+          resolve(
+            (res ?? {
+              categories: [],
+              states: [],
+              cities: [],
+            }) as UserSelectedPreferences
+          )
+        })
+
+        if (ios?.getUserSelectedPreferences?.postMessage) {
+          ios.getUserSelectedPreferences.postMessage({ callback })
+          return
+        }
+
+        resolve({
+          categories: [],
+          states: [],
+          cities: [],
+        })
       } catch (error) {
         reject(error)
       }

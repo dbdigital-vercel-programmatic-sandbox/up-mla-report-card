@@ -2,12 +2,12 @@
 "use client"
 
 import type { CSSProperties, ReactNode } from "react"
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { bridge } from "@/bridge"
 
-import { fetchSurveyAttemptResponse } from "./api"
+import { fetchSurveyAttemptResponse, fetchUserPreferenceCities } from "./api"
 import arrowDownIcon from "./assets/arrow-down.svg"
 import { MLA_SURVEY_API_BASE_URL, X_AUT_T } from "./config"
 import {
@@ -107,6 +107,14 @@ function formatDuration(seconds?: number) {
   return `${mins}:${secs.toString().padStart(2, "0")}`
 }
 
+function normalizeText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "")
+}
+
+function getCityLevelListingUrl(value: string) {
+  return value.trim().toLowerCase().replace(/\/+$/, "")
+}
+
 function ProgressReport({
   items,
   title,
@@ -149,9 +157,9 @@ function ProgressReport({
     PARTY_HIGHLIGHT_BASE.forEach((term) => {
       makeTextVariants(term).forEach((variant) => candidateSet.add(variant))
     })
-      ; (highlightTerms ?? []).forEach((term) => {
-        makeTextVariants(term).forEach((variant) => candidateSet.add(variant))
-      })
+    ;(highlightTerms ?? []).forEach((term) => {
+      makeTextVariants(term).forEach((variant) => candidateSet.add(variant))
+    })
 
     const terms = [...candidateSet].filter(Boolean)
     if (terms.length === 0) {
@@ -434,7 +442,7 @@ function MediaBlock({
               <PlayIcon className={styles.playIcon} />
             ) : null}
             {media.type === "video" &&
-              formatDuration(media.videoDetails?.duration) ? (
+            formatDuration(media.videoDetails?.duration) ? (
               <span className={styles.mediaDuration}>
                 {formatDuration(media.videoDetails?.duration)}
               </span>
@@ -720,30 +728,51 @@ function Tab4Section({
   onToggleDropdown: (id: string | null) => void
 }) {
   const { getAppUserData } = bridge
+  const districtStorageKey = `selectedFirstOption-campaign-${campaignId}`
+  const seatStorageKey = `selectedSecondOption-campaign-${campaignId}`
+  const hasAutoSelectedDistrictRef = useRef(false)
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(
     null
   )
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null)
   const [userResponse, setUserResponse] = useState<UserResponse | null>(null)
   const [districtSearch, setDistrictSearch] = useState("")
+  const [canRunPreferencesFallback, setCanRunPreferencesFallback] =
+    useState(false)
 
   useEffect(() => {
-    const storedDistrict = window.sessionStorage.getItem(
-      `selectedFirstOption-campaign-${campaignId}`
-    )
-    const storedSeat = window.sessionStorage.getItem(
-      `selectedSecondOption-campaign-${campaignId}`
-    )
+    const storedDistrict = window.localStorage.getItem(districtStorageKey)
+    const storedSeat = window.localStorage.getItem(seatStorageKey)
+    const parsedDistrict = storedDistrict ? Number(storedDistrict) : null
+    const parsedSeat = storedSeat ? Number(storedSeat) : null
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelectedDistrictId(storedDistrict ? Number(storedDistrict) : null)
-    setSelectedSeatId(storedSeat ? Number(storedSeat) : null)
-  }, [campaignId])
+    setSelectedDistrictId(
+      parsedDistrict !== null && !Number.isNaN(parsedDistrict)
+        ? parsedDistrict
+        : null
+    )
+    setSelectedSeatId(
+      parsedSeat !== null && !Number.isNaN(parsedSeat) ? parsedSeat : null
+    )
+    hasAutoSelectedDistrictRef.current = false
+    setCanRunPreferencesFallback(false)
+  }, [districtStorageKey, seatStorageKey])
 
   useEffect(() => {
     let cancelled = false
 
     const loadUserResponse = async () => {
+      const hasLocalDistrict = Boolean(
+        window.localStorage.getItem(districtStorageKey)
+      )
+      const hasLocalSeat = Boolean(window.localStorage.getItem(seatStorageKey))
+
+      if (hasLocalDistrict && hasLocalSeat) {
+        setCanRunPreferencesFallback(true)
+        return
+      }
+
       try {
         const userData = await getAppUserData()
         const endpoint = new URL(
@@ -763,8 +792,8 @@ function Tab4Section({
               deviceid: userData.user?.unique_id ?? "",
               msisdn: userData.user?.phone_number ?? "",
               cid: "521",
-              'x-aut-web-t': '420x66695ztde3qao6a69',
-              dtyp: 'web',
+              "x-aut-web-t": "420x66695ztde3qao6a69",
+              dtyp: "web",
             },
           },
         })
@@ -792,24 +821,26 @@ function Tab4Section({
         setUserResponse(json)
 
         if (json.hasAttempted) {
-          if (json.response?.district) {
+          if (!hasLocalDistrict && json.response?.district) {
             setSelectedDistrictId(json.response.district)
-            window.sessionStorage.setItem(
-              `selectedFirstOption-campaign-${campaignId}`,
+            window.localStorage.setItem(
+              districtStorageKey,
               json.response.district.toString()
             )
           }
 
-          if (json.response?.vidhanSeat) {
+          if (!hasLocalSeat && json.response?.vidhanSeat) {
             setSelectedSeatId(json.response.vidhanSeat)
-            window.sessionStorage.setItem(
-              `selectedSecondOption-campaign-${campaignId}`,
+            window.localStorage.setItem(
+              seatStorageKey,
               json.response.vidhanSeat.toString()
             )
           }
         }
       } catch {
         return
+      } finally {
+        setCanRunPreferencesFallback(true)
       }
     }
 
@@ -818,7 +849,108 @@ function Tab4Section({
     return () => {
       cancelled = true
     }
-  }, [campaignId, getAppUserData])
+  }, [campaignId, districtStorageKey, getAppUserData, seatStorageKey])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    const autoSelectDistrictFromUserPreferences = async () => {
+      if (
+        !canRunPreferencesFallback ||
+        hasAutoSelectedDistrictRef.current ||
+        selectedDistrictId != null ||
+        window.localStorage.getItem(districtStorageKey)
+      ) {
+        return
+      }
+
+      try {
+        const preferences = await bridge.getUserSelectedPreferences()
+        const preferredStates = Array.isArray(preferences?.states)
+          ? preferences.states
+          : []
+        const preferredCities = Array.isArray(preferences?.cities)
+          ? preferences.cities
+          : []
+
+        if (preferredStates.length === 0 || preferredCities.length === 0) {
+          return
+        }
+
+        const appUserData = await bridge.getAppUserData()
+        const prefsCitiesJson = await fetchUserPreferenceCities(
+          preferredStates,
+          appUserData,
+          X_AUT_T
+        )
+        const apiCities = Array.isArray(prefsCitiesJson?.cities)
+          ? prefsCitiesJson.cities
+          : []
+
+        if (apiCities.length === 0) {
+          return
+        }
+
+        const matchedPreferredCity = apiCities.find((city) =>
+          preferredCities.includes(Number(city.id))
+        )
+
+        if (!matchedPreferredCity?.listingUrl) {
+          return
+        }
+
+        const cityLevelListingUrl = getCityLevelListingUrl(
+          matchedPreferredCity.listingUrl
+        )
+        const cityLevelObject = apiCities.find(
+          (city) =>
+            getCityLevelListingUrl(city.listingUrl) === cityLevelListingUrl
+        )
+        const cityEngName = cityLevelObject?.engName
+
+        if (!cityEngName) {
+          return
+        }
+
+        const normalizedCityName = normalizeText(cityEngName)
+        const matchedDistrict = campaignData.districts.find((district) => {
+          const districtName =
+            district.district_english_name || district.district_name || ""
+          const normalizedDistrictName = normalizeText(districtName)
+
+          return (
+            normalizedDistrictName === normalizedCityName ||
+            normalizedDistrictName.includes(normalizedCityName) ||
+            normalizedCityName.includes(normalizedDistrictName)
+          )
+        })
+
+        if (!matchedDistrict || isCancelled) {
+          return
+        }
+
+        hasAutoSelectedDistrictRef.current = true
+        setSelectedDistrictId(matchedDistrict.id)
+        window.localStorage.setItem(
+          districtStorageKey,
+          matchedDistrict.id.toString()
+        )
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    void autoSelectDistrictFromUserPreferences()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [
+    canRunPreferencesFallback,
+    campaignData.districts,
+    districtStorageKey,
+    selectedDistrictId,
+  ])
 
   const districtOptions = useMemo(
     () =>
@@ -854,11 +986,11 @@ function Tab4Section({
 
   const selectedItem = selectedSeatId
     ? getSelectedSeat(
-      selectedSeatId.toString(),
-      campaignData,
-      translations,
-      userResponse ?? undefined
-    )
+        selectedSeatId.toString(),
+        campaignData,
+        translations,
+        userResponse ?? undefined
+      )
     : null
 
   return (
@@ -1033,18 +1165,15 @@ function Tab4Section({
                         triggerContentFilterAddedEvent({
                           source,
                           district: district.englishName,
-                          contentTitle : campaignData.meta.title || "",
+                          contentTitle: campaignData.meta.title || "",
                         })
                         setSelectedDistrictId(district.id)
                         setSelectedSeatId(null)
-                        window.sessionStorage.setItem(
-                          `selectedFirstOption-campaign-${campaignId}`,
+                        window.localStorage.setItem(
+                          districtStorageKey,
                           district.id.toString()
                         )
-                        window.sessionStorage.setItem(
-                          `selectedSecondOption-campaign-${campaignId}`,
-                          ""
-                        )
+                        window.localStorage.setItem(seatStorageKey, "")
                         onToggleDropdown(null)
                       }}
                     >
@@ -1077,8 +1206,8 @@ function Tab4Section({
                       console.log(payload)
                       bridge.trackMixpanelEvent(payload)
                       setSelectedSeatId(seat.id)
-                      window.sessionStorage.setItem(
-                        `selectedSecondOption-campaign-${campaignId}`,
+                      window.localStorage.setItem(
+                        seatStorageKey,
                         seat.id.toString()
                       )
                       onToggleDropdown(null)
@@ -1329,13 +1458,13 @@ export function MlaReportCardClient({
   const currentTabData = campaignData[activeTab as keyof MlaCampaignData]
   const visibleBlocks: ContentBlock[] = Array.isArray(currentTabData)
     ? (
-      currentTabData as Array<
-        ContentBlock | District | MlaCampaignData["tabs"][number]
-      >
-    ).filter(
-      (block): block is ContentBlock =>
-        typeof block === "object" && "type" in block
-    )
+        currentTabData as Array<
+          ContentBlock | District | MlaCampaignData["tabs"][number]
+        >
+      ).filter(
+        (block): block is ContentBlock =>
+          typeof block === "object" && "type" in block
+      )
     : []
 
   return (
