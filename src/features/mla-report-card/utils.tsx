@@ -164,6 +164,7 @@ export function triggerContentItemClickedEvent(clickedEvent: {
 export function triggerContentFilterAddedEvent(filterEvent: {
   source: string
   district: string
+  contentTitle : string;
 }) {
   if (!bridge.isWebview || !bridge.methodExists(["trackMixpanelEvent"]).or) {
     return
@@ -174,7 +175,7 @@ export function triggerContentFilterAddedEvent(filterEvent: {
     properties: {
       Source: filterEvent.source,
       "Content Type": CONTENT_TYPE,
-      "Content Title": "UP Pradhan Result",
+      "Content Title": filterEvent.contentTitle,
       District: filterEvent.district,
     },
   }
@@ -255,7 +256,7 @@ export function shareMla(args: {
     .replace(
       "$$StateName$$",
       args.translations.stateMapping[stateCode] ||
-        args.translations.stateMapping.MP
+      args.translations.stateMapping.MP
     )
 
   bridge.shareArticle(
@@ -312,10 +313,10 @@ export function buildCardDetails(
     imageUrl: `${MLA_IMAGE_BASE}/${seat.mla_info.image}`,
     tag: seat.mla_info.position
       ? {
-          label: seat.mla_info.position,
-          bgColor:
-            "color-mix(in srgb, var(--secondary-common-color) 12%, var(--background-color-main))",
-        }
+        label: seat.mla_info.position,
+        bgColor:
+          "color-mix(in srgb, var(--secondary-common-color) 12%, var(--background-color-main))",
+      }
       : undefined,
     smallImageUrl: `${PARTY_ICON_BASE}/${partyIcon}.jpg`,
     percentage: getScorePercent(seat.mla_info.score),

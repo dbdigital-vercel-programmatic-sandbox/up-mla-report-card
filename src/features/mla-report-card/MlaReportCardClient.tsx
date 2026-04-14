@@ -1033,6 +1033,7 @@ function Tab4Section({
                         triggerContentFilterAddedEvent({
                           source,
                           district: district.englishName,
+                          contentTitle : campaignData.meta.title || "",
                         })
                         setSelectedDistrictId(district.id)
                         setSelectedSeatId(null)
