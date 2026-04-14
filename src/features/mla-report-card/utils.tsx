@@ -1,7 +1,5 @@
 import type { ReactNode } from "react"
 
-import { bridge } from "@/bridge"
-
 import type {
   District,
   ItemDetailData,
@@ -19,6 +17,27 @@ const MLA_IMAGE_BASE =
   "https://images.bhaskarassets.com/web2images/web-frontend/mla-report-card/mla"
 export const CONTENT_TYPE = "Interactive Survey"
 export const CONTENT_TITLE = "Interactive Survey Result"
+
+export type WebviewBridgeActions = {
+  isWebview: boolean
+  methodExists: (
+    methods: Array<"trackMixpanelEvent" | "trackInteractivePage">
+  ) => {
+    or: boolean
+    and: boolean
+    rawData: unknown[]
+  }
+  trackMixpanelEvent: (payload: Record<string, unknown>) => void
+  trackInteractivePage: (payload: Record<string, unknown>) => void
+  shareArticle: (
+    storyUrl: string,
+    title: string,
+    imageUrl: string,
+    categoryName: string,
+    overrideTemplate?: string,
+    hasWatermark?: boolean
+  ) => void
+}
 type MlaListTag =
   | "overallTop"
   | "congressTop"
@@ -84,10 +103,14 @@ export function renderTemplateContent(items: TemplateContentItem[]) {
 }
 
 export function triggerContentOpenedEvent(
+  bridgeActions: WebviewBridgeActions,
   source: string,
   contentTitle: string
 ) {
-  if (!bridge.isWebview || !bridge.methodExists(["trackMixpanelEvent"]).or) {
+  if (
+    !bridgeActions.isWebview ||
+    !bridgeActions.methodExists(["trackMixpanelEvent"]).or
+  ) {
     return
   }
 
@@ -101,14 +124,18 @@ export function triggerContentOpenedEvent(
   }
 
   console.log(payload)
-  bridge.trackMixpanelEvent(payload)
+  bridgeActions.trackMixpanelEvent(payload)
 }
 
 export function triggerContentConsumedEvent(
+  bridgeActions: WebviewBridgeActions,
   source: string,
   contentTitle: string
 ) {
-  if (!bridge.isWebview || !bridge.methodExists(["trackInteractivePage"]).or) {
+  if (
+    !bridgeActions.isWebview ||
+    !bridgeActions.methodExists(["trackInteractivePage"]).or
+  ) {
     return
   }
 
@@ -133,16 +160,20 @@ export function triggerContentConsumedEvent(
   }
 
   console.log(payload)
-  bridge.trackInteractivePage(payload)
+  bridgeActions.trackInteractivePage(payload)
 }
 
 export function triggerContentItemClickedEvent(clickedEvent: {
+  bridgeActions: WebviewBridgeActions
   source: string
   subSource: string
   contentTitle: string
   category: "Top Buttons" | "Filters"
 }) {
-  if (!bridge.isWebview || !bridge.methodExists(["trackMixpanelEvent"]).or) {
+  if (
+    !clickedEvent.bridgeActions.isWebview ||
+    !clickedEvent.bridgeActions.methodExists(["trackMixpanelEvent"]).or
+  ) {
     return
   }
 
@@ -158,15 +189,19 @@ export function triggerContentItemClickedEvent(clickedEvent: {
   }
 
   console.log(payload)
-  bridge.trackMixpanelEvent(payload)
+  clickedEvent.bridgeActions.trackMixpanelEvent(payload)
 }
 
 export function triggerContentFilterAddedEvent(filterEvent: {
+  bridgeActions: WebviewBridgeActions
   source: string
   district: string
-  contentTitle : string;
+  contentTitle: string
 }) {
-  if (!bridge.isWebview || !bridge.methodExists(["trackMixpanelEvent"]).or) {
+  if (
+    !filterEvent.bridgeActions.isWebview ||
+    !filterEvent.bridgeActions.methodExists(["trackMixpanelEvent"]).or
+  ) {
     return
   }
 
@@ -181,10 +216,11 @@ export function triggerContentFilterAddedEvent(filterEvent: {
   }
 
   console.log(payload)
-  bridge.trackMixpanelEvent(payload)
+  filterEvent.bridgeActions.trackMixpanelEvent(payload)
 }
 
 export function shareCommon(args: {
+  bridgeActions: WebviewBridgeActions
   deeplink: string
   contentTitle: string
   source: string
@@ -192,7 +228,7 @@ export function shareCommon(args: {
   subSource: string
   translations: MlaTranslations
 }) {
-  if (!bridge.isWebview) {
+  if (!args.bridgeActions.isWebview) {
     return
   }
 
@@ -208,9 +244,9 @@ export function shareCommon(args: {
   }
 
   console.log(payload)
-  bridge.trackMixpanelEvent(payload)
+  args.bridgeActions.trackMixpanelEvent(payload)
 
-  bridge.shareArticle(
+  args.bridgeActions.shareArticle(
     args.deeplink,
     args.translations.commonShareText,
     "",
@@ -220,6 +256,7 @@ export function shareCommon(args: {
 }
 
 export function shareMla(args: {
+  bridgeActions: WebviewBridgeActions
   deeplink: string
   contentTitle: string
   source: string
@@ -229,7 +266,7 @@ export function shareMla(args: {
   candidateName: string
   translations: MlaTranslations
 }) {
-  if (!bridge.isWebview) {
+  if (!args.bridgeActions.isWebview) {
     return
   }
 
@@ -245,7 +282,7 @@ export function shareMla(args: {
   }
 
   console.log(payload)
-  bridge.trackMixpanelEvent(payload)
+  args.bridgeActions.trackMixpanelEvent(payload)
 
   const stateCode = args.contentTitle.split(
     " "
@@ -256,10 +293,10 @@ export function shareMla(args: {
     .replace(
       "$$StateName$$",
       args.translations.stateMapping[stateCode] ||
-      args.translations.stateMapping.MP
+        args.translations.stateMapping.MP
     )
 
-  bridge.shareArticle(
+  args.bridgeActions.shareArticle(
     args.deeplink,
     sharingText,
     "",
@@ -313,10 +350,10 @@ export function buildCardDetails(
     imageUrl: `${MLA_IMAGE_BASE}/${seat.mla_info.image}`,
     tag: seat.mla_info.position
       ? {
-        label: seat.mla_info.position,
-        bgColor:
-          "color-mix(in srgb, var(--secondary-common-color) 12%, var(--background-color-main))",
-      }
+          label: seat.mla_info.position,
+          bgColor:
+            "color-mix(in srgb, var(--secondary-common-color) 12%, var(--background-color-main))",
+        }
       : undefined,
     smallImageUrl: `${PARTY_ICON_BASE}/${partyIcon}.jpg`,
     percentage: getScorePercent(seat.mla_info.score),
