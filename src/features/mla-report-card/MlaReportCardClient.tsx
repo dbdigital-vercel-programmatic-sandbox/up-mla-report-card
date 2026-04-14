@@ -149,9 +149,9 @@ function ProgressReport({
     PARTY_HIGHLIGHT_BASE.forEach((term) => {
       makeTextVariants(term).forEach((variant) => candidateSet.add(variant))
     })
-    ;(highlightTerms ?? []).forEach((term) => {
-      makeTextVariants(term).forEach((variant) => candidateSet.add(variant))
-    })
+      ; (highlightTerms ?? []).forEach((term) => {
+        makeTextVariants(term).forEach((variant) => candidateSet.add(variant))
+      })
 
     const terms = [...candidateSet].filter(Boolean)
     if (terms.length === 0) {
@@ -434,7 +434,7 @@ function MediaBlock({
               <PlayIcon className={styles.playIcon} />
             ) : null}
             {media.type === "video" &&
-            formatDuration(media.videoDetails?.duration) ? (
+              formatDuration(media.videoDetails?.duration) ? (
               <span className={styles.mediaDuration}>
                 {formatDuration(media.videoDetails?.duration)}
               </span>
@@ -762,6 +762,9 @@ function Tab4Section({
               "a-ver-code": "600",
               deviceid: userData.user?.unique_id ?? "",
               msisdn: userData.user?.phone_number ?? "",
+              cid: "521",
+              'x-aut-web-t': '420x66695ztde3qao6a69',
+              dtyp: 'web',
             },
           },
         })
@@ -851,11 +854,11 @@ function Tab4Section({
 
   const selectedItem = selectedSeatId
     ? getSelectedSeat(
-        selectedSeatId.toString(),
-        campaignData,
-        translations,
-        userResponse ?? undefined
-      )
+      selectedSeatId.toString(),
+      campaignData,
+      translations,
+      userResponse ?? undefined
+    )
     : null
 
   return (
@@ -1030,6 +1033,7 @@ function Tab4Section({
                         triggerContentFilterAddedEvent({
                           source,
                           district: district.englishName,
+                          contentTitle : campaignData.meta.title || "",
                         })
                         setSelectedDistrictId(district.id)
                         setSelectedSeatId(null)
@@ -1325,13 +1329,13 @@ export function MlaReportCardClient({
   const currentTabData = campaignData[activeTab as keyof MlaCampaignData]
   const visibleBlocks: ContentBlock[] = Array.isArray(currentTabData)
     ? (
-        currentTabData as Array<
-          ContentBlock | District | MlaCampaignData["tabs"][number]
-        >
-      ).filter(
-        (block): block is ContentBlock =>
-          typeof block === "object" && "type" in block
-      )
+      currentTabData as Array<
+        ContentBlock | District | MlaCampaignData["tabs"][number]
+      >
+    ).filter(
+      (block): block is ContentBlock =>
+        typeof block === "object" && "type" in block
+    )
     : []
 
   return (
