@@ -21,6 +21,7 @@ import styles from "./mla-report-card.module.css"
 import {
   getSelectedSeat,
   renderTemplateContent,
+  shareCommon,
   shareMla,
   triggerContentFilterAddedEvent,
   type WebviewBridgeActions,
@@ -879,17 +880,14 @@ export function Tab4Section({
               selectedItem.cardDetails.partyName,
             ]}
             onShareItem={(progressItem) =>
-              shareMla({
+              shareCommon({
                 bridgeActions,
-                deeplink: campaignData.meta.day4Deeplink,
+                deeplink: campaignData.meta.deeplink,
                 contentTitle: campaignData.meta.title,
                 source,
                 category: "MLA Page",
                 subSource:
                   progressItem.title ?? selectedItem.cardDetails.subTitle,
-                constituencyName:
-                  selectedItem.cardDetails.subTitle.split(",")[0] ?? "",
-                candidateName: selectedItem.cardDetails.title,
                 translations,
               })
             }
