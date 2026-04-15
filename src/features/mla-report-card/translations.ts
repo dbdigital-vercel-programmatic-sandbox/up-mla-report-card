@@ -27,6 +27,7 @@ export const mlaTranslations: MlaTranslations = {
   districtSheetTitle: "आपका जिला",
   districtSearchPlaceholder: "अपना जिला खोजें",
   seatSheetTitle: "आपकी विधानसभा सीट",
+  seatSearchPlaceholder: "अपनी विधानसभा सीट खोजें",
   seatPlaceholder: "विधानसभा सीट चुनें",
   close: "",
   searchDistrict: "जिला खोजें",
