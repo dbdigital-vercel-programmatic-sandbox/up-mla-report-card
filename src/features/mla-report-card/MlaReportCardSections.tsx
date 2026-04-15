@@ -21,6 +21,7 @@ import styles from "./mla-report-card.module.css"
 import {
   getSelectedSeat,
   renderTemplateContent,
+  shareCommon,
   shareMla,
   triggerContentFilterAddedEvent,
   type WebviewBridgeActions,
@@ -97,6 +98,7 @@ export function ProgressReport({
   shareButtonText,
   onShareItem,
   highlightTerms,
+  renderItemHeader,
 }: {
   items: ProgressDetails[]
   title?: string
@@ -104,6 +106,7 @@ export function ProgressReport({
   shareButtonText?: string
   onShareItem?: (item: ProgressDetails) => void
   highlightTerms?: string[]
+  renderItemHeader?: (item: ProgressDetails, index: number) => ReactNode
 }) {
   const boldNumberAndFollowingWord = (text: string) => {
     const words = text.split(/\s+/)
@@ -185,6 +188,7 @@ export function ProgressReport({
           key={`${item.title ?? "progress"}-${index}`}
           className={styles.progressItem}
         >
+          {renderItemHeader ? renderItemHeader(item, index) : null}
           {item.title ? (
             <h4 className={styles.progressTitle}>
               {renderHighlightedTitle(item.title)}
@@ -878,18 +882,48 @@ export function Tab4Section({
               selectedItem.cardDetails.subTitle.split(",")[0] ?? "",
               selectedItem.cardDetails.partyName,
             ]}
+            renderItemHeader={(_item, index) => {
+              if (index !== 0) {
+                return null
+              }
+
+              return (
+                <div className={styles.progressMlaHeader}>
+                  <img
+                    src={selectedItem.cardDetails.imageUrl}
+                    alt={selectedItem.cardDetails.title}
+                    className={styles.progressMlaImage}
+                  />
+                  <div className={styles.progressMlaText}>
+                    <div className={styles.progressMlaName}>
+                      {selectedItem.cardDetails.title}
+                    </div>
+                    <div className={styles.progressMlaMeta}>
+                      {selectedItem.cardDetails.subTitle}
+                    </div>
+                  </div>
+                  <div className={styles.progressMlaParty}>
+                    <img
+                      src={selectedItem.cardDetails.smallImageUrl}
+                      alt={selectedItem.cardDetails.partyName}
+                      className={styles.progressMlaPartyIcon}
+                    />
+                    <div className={styles.progressMlaPartyName}>
+                      {selectedItem.cardDetails.partyName}
+                    </div>
+                  </div>
+                </div>
+              )
+            }}
             onShareItem={(progressItem) =>
-              shareMla({
+              shareCommon({
                 bridgeActions,
-                deeplink: campaignData.meta.day4Deeplink,
+                deeplink: campaignData.meta.deeplink,
                 contentTitle: campaignData.meta.title,
                 source,
                 category: "MLA Page",
                 subSource:
                   progressItem.title ?? selectedItem.cardDetails.subTitle,
-                constituencyName:
-                  selectedItem.cardDetails.subTitle.split(",")[0] ?? "",
-                candidateName: selectedItem.cardDetails.title,
                 translations,
               })
             }
