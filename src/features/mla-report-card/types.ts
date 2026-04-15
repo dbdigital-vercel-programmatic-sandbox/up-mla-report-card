@@ -22,6 +22,7 @@ export interface MlaTranslations {
   districtSheetTitle: string
   districtSearchPlaceholder: string
   seatSheetTitle: string
+  seatSearchPlaceholder: string
   seatPlaceholder: string
   close: string
   searchDistrict: string
@@ -251,6 +252,7 @@ export interface District {
 export interface Seat {
   id: number
   seat_name: string
+  seat_english_name: string
   tags?: string[]
   mla_info: {
     name: string

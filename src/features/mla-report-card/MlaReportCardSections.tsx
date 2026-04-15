@@ -7,12 +7,12 @@ import { useMemo, useState } from "react"
 import { useWebviewContext } from "@/bridge"
 
 import arrowDownIcon from "./assets/arrow-down.svg"
+import { SearchSheet } from "./SearchSheet"
 import {
   ArrowIcon,
   CloseIcon,
   PlayIcon,
   PopupCloseIcon,
-  SearchIcon,
   TapHandIcon,
   TallyArrowIcon,
   WhatsappIcon,
@@ -741,7 +741,7 @@ export function Tab4Section({
       isWebview,
       methodExists,
       trackMixpanelEvent,
-      trackInteractivePage: (_payload) => {},
+      trackInteractivePage: () => {},
       shareArticle,
     }),
     [isWebview, methodExists, trackMixpanelEvent, shareArticle]
@@ -750,7 +750,6 @@ export function Tab4Section({
     null
   )
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null)
-  const [districtSearch, setDistrictSearch] = useState("")
   const { userResponse, districtStorageKey, seatStorageKey } =
     usePrefillDistrictsAndSeat({
       campaignId,
@@ -779,16 +778,14 @@ export function Tab4Section({
     [campaignData.districts]
   )
 
-  const filteredDistrictOptions = districtOptions.filter((district) =>
-    `${district.name} ${district.englishName}`
-      .toLowerCase()
-      .includes(districtSearch.toLowerCase())
-  )
-
   const seatOptions =
     campaignData.districts
       .find((district) => district.id === selectedDistrictId)
-      ?.seats.map((seat) => ({ id: seat.id, name: seat.seat_name }))
+      ?.seats.map((seat) => ({
+        id: seat.id,
+        name: seat.seat_name,
+        englishName: seat.seat_english_name || seat.seat_name,
+      }))
       .sort((left, right) => left.name.localeCompare(right.name)) ?? []
 
   const selectedItem = selectedSeatId
@@ -966,96 +963,56 @@ export function Tab4Section({
             </div>
 
             {openDropdownId === "district-selector" ? (
-              <>
-                <div className={styles.searchWrap}>
-                  <SearchIcon
-                    className={styles.searchIcon}
-                    style={
-                      {
-                        "--foreground-color": "var(--secondary-color)",
-                      } as CSSProperties
-                    }
-                  />
-                  <input
-                    className={styles.searchInput}
-                    value={districtSearch}
-                    onChange={(event) => setDistrictSearch(event.target.value)}
-                    placeholder={translations.districtSearchPlaceholder}
-                  />
-                  {districtSearch ? (
-                    <button
-                      type="button"
-                      className={styles.searchClearButton}
-                      onClick={() => setDistrictSearch("")}
-                      aria-label="Clear search"
-                    >
-                      <span className={styles.searchClearIcon}>×</span>
-                    </button>
-                  ) : null}
-                </div>
-                <div className={styles.sheetList}>
-                  {filteredDistrictOptions.map((district) => (
-                    <button
-                      key={district.id}
-                      type="button"
-                      className={styles.sheetOption}
-                      onClick={() => {
-                        triggerContentFilterAddedEvent({
-                          bridgeActions,
-                          source,
-                          district: district.englishName,
-                          contentTitle: campaignData.meta.title || "",
-                        })
-                        setSelectedDistrictId(district.id)
-                        setSelectedSeatId(null)
-                        window.localStorage.setItem(
-                          districtStorageKey,
-                          district.id.toString()
-                        )
-                        window.localStorage.setItem(seatStorageKey, "")
-                        onToggleDropdown(null)
-                      }}
-                    >
-                      {district.name}
-                    </button>
-                  ))}
-                </div>
-              </>
+              <SearchSheet
+                key="district-selector"
+                options={districtOptions}
+                topHeading={translations.districtSearchPlaceholder}
+                onSelect={(district) => {
+                  triggerContentFilterAddedEvent({
+                    bridgeActions,
+                    source,
+                    district: district.englishName,
+                    contentTitle: campaignData.meta.title || "",
+                  })
+                  setSelectedDistrictId(district.id)
+                  setSelectedSeatId(null)
+                  window.localStorage.setItem(
+                    districtStorageKey,
+                    district.id.toString()
+                  )
+                  window.localStorage.setItem(seatStorageKey, "")
+                  onToggleDropdown(null)
+                }}
+              />
             ) : (
-              <div className={styles.sheetList}>
-                {seatOptions.map((seat) => (
-                  <button
-                    key={seat.id}
-                    type="button"
-                    className={styles.sheetOption}
-                    onClick={() => {
-                      const payload = {
-                        event: "Interactive Survey User Info Submitted",
-                        properties: {
-                          "Content Location": seat.name,
-                          District:
-                            districtOptions.find(
-                              (district) => district.id === selectedDistrictId
-                            )?.name ?? "",
-                          "Content Title": campaignData.meta.title,
-                          "Content Type": "Interactive Survey",
-                        },
-                      }
+              <SearchSheet
+                key={`seat-selector-${selectedDistrictId ?? "none"}`}
+                options={seatOptions}
+                topHeading={translations.seatSearchPlaceholder}
+                onSelect={(seat) => {
+                  const payload = {
+                    event: "Interactive Survey User Info Submitted",
+                    properties: {
+                      "Content Location": seat.name,
+                      District:
+                        districtOptions.find(
+                          (district) => district.id === selectedDistrictId
+                        )?.name ?? "",
+                      "Content Title": campaignData.meta.title,
+                      "Content Type": "Interactive Survey",
+                    },
+                  }
 
-                      console.log(payload)
-                      trackMixpanelEvent(payload)
-                      setSelectedSeatId(seat.id)
-                      window.localStorage.setItem(
-                        seatStorageKey,
-                        seat.id.toString()
-                      )
-                      onToggleDropdown(null)
-                    }}
-                  >
-                    {seat.name}
-                  </button>
-                ))}
-              </div>
+                  console.log(payload)
+                  trackMixpanelEvent(payload)
+                  setSelectedSeatId(seat.id)
+                  window.localStorage.setItem(
+                    seatStorageKey,
+                    seat.id.toString()
+                  )
+                  onToggleDropdown(null)
+                }}
+              />
             )}
           </div>
         </div>
