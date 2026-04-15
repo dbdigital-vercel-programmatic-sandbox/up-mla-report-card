@@ -876,6 +876,7 @@ export function Tab4Section({
             items={selectedItem.listItems[0]?.progressDetails ?? []}
             shareButtonText={translations.shareButtonText}
             highlightTerms={[
+              selectedItem.cardDetails.title,
               selectedItem.cardDetails.subTitle.split(",")[0] ?? "",
               selectedItem.cardDetails.partyName,
             ]}
