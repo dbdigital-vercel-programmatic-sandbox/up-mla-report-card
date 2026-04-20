@@ -46,8 +46,8 @@ type MlaListTag =
   | "congressBottom"
   | "BJPBottom"
 
-function getScorePercent(score: string | number) {
-  return `${Math.round(Number(score))}%`
+function getScorePercent(score: number) {
+  return `${score}%`
 }
 
 function renderMarkupText(item: TemplateContentItem) {
@@ -373,18 +373,9 @@ function buildQuestionProgress(
     (option) => option.id === selectedAnswer?.options[0]
   )
 
-  const optionsWithScore = question.options.map((option) => ({
-    ...option,
-    resolvedScore: Number(option.score),
-  }))
-
-  const sortedOptions = [...optionsWithScore].sort(
-    (left, right) => right.resolvedScore - left.resolvedScore
-  )
-
-  const progressBars = sortedOptions.map((option, index) => ({
+  const progressBars = question.options.map((option, index) => ({
     title: option.text,
-    percent: getScorePercent(option.resolvedScore),
+    percent: getScorePercent(option.score),
     color: index === 0 ? "#8BC66F" : "#BEBEBE",
     opacity: 0.3,
     icon: "",
@@ -400,14 +391,23 @@ function buildQuestionProgress(
   }
 
   if (selectedOption) {
-    const topOptionId = sortedOptions[0]?.id
+    const topOption = question.options.reduce<
+      Question["options"][number] | undefined
+    >((bestOption, option) => {
+      if (!bestOption || option.score > bestOption.score) {
+        return option
+      }
+
+      return bestOption
+    }, undefined)
+
     detail.footerDescription = {
-      color: selectedOption.id === topOptionId ? "#5EB30D" : "#BEBEBE",
+      color: selectedOption.id === topOption?.id ? "#5EB30D" : "#BEBEBE",
       text: translations.optionChosen.replace(
         "$$optionText$$",
         selectedOption.text
       ),
-      thumbIcon: selectedOption.id === topOptionId ? "👍" : "👎",
+      thumbIcon: selectedOption.id === topOption?.id ? "👍" : "👎",
     }
   }
 

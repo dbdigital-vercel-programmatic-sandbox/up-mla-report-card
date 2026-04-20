@@ -208,33 +208,26 @@ export function ProgressReport({
                   <span>{boldNumberAndFollowingWord(section.description)}</span>
                 </p>
               ) : null}
-              {[...section.progressBars]
-                .sort((left, right) => {
-                  const leftPercent = Number(left.percent.replace("%", ""))
-                  const rightPercent = Number(right.percent.replace("%", ""))
-                  return rightPercent - leftPercent
-                })
-                .map((bar, barIndex) => (
-                  <div key={bar.title} className={styles.progressBarRow}>
-                    <div className={styles.progressBarTrack}>
-                      <span className={styles.progressBarTitleText}>
-                        {bar.title}
-                      </span>
-                      <div
-                        className={styles.progressBarFill}
-                        style={{
-                          width: bar.percent,
-                          backgroundColor:
-                            barIndex === 0 ? "#8BC66F" : "#BEBEBE",
-                          opacity: 0.3,
-                        }}
-                      />
-                      <span className={styles.progressBarValueText}>
-                        {bar.percent}
-                      </span>
-                    </div>
+              {section.progressBars.map((bar, barIndex) => (
+                <div key={bar.title} className={styles.progressBarRow}>
+                  <div className={styles.progressBarTrack}>
+                    <span className={styles.progressBarTitleText}>
+                      {bar.title}
+                    </span>
+                    <div
+                      className={styles.progressBarFill}
+                      style={{
+                        width: bar.percent,
+                        backgroundColor: barIndex === 0 ? "#8BC66F" : "#BEBEBE",
+                        opacity: 0.3,
+                      }}
+                    />
+                    <span className={styles.progressBarValueText}>
+                      {bar.percent}
+                    </span>
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
           ))}
           {item.footerDescription ? (
