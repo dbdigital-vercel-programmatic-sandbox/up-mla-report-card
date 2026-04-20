@@ -256,7 +256,7 @@ export interface Seat {
   tags?: string[]
   mla_info: {
     name: string
-    score: string | number
+    score: number
     position: string
     image: string
     party: string
@@ -270,7 +270,7 @@ export interface Question {
   options: Array<{
     id: number
     text: string
-    score: string | number
+    score: number
   }>
 }
 
