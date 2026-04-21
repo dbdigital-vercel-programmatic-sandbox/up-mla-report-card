@@ -341,23 +341,32 @@ export function buildCardDetails(
   seat: District["seats"][number],
   translations: MlaTranslations
 ) {
-  const partyIcon = getPartyIcon(seat.mla_info.party, translations)
+  const partyIcon = seat.mla_info
+    ? getPartyIcon(seat.mla_info.party, translations)
+    : undefined
 
   return {
     id: seat.id.toString(),
     subTitle: `${seat.seat_name}, ${district.district_name}`,
-    title: seat.mla_info.name,
-    imageUrl: `${MLA_IMAGE_BASE}/${seat.mla_info.image}`,
-    tag: seat.mla_info.position
+    title: seat.mla_info?.name,
+    imageUrl: seat.mla_info?.image
+      ? `${MLA_IMAGE_BASE}/${seat.mla_info.image}`
+      : undefined,
+    tag: seat.mla_info?.position
       ? {
           label: seat.mla_info.position,
           bgColor:
             "color-mix(in srgb, var(--secondary-common-color) 12%, var(--background-color-main))",
         }
       : undefined,
-    smallImageUrl: `${PARTY_ICON_BASE}/${partyIcon}.jpg`,
-    percentage: getScorePercent(seat.mla_info.score),
-    partyName: seat.mla_info.party,
+    smallImageUrl: partyIcon
+      ? `${PARTY_ICON_BASE}/${partyIcon}.jpg`
+      : undefined,
+    percentage:
+      seat.mla_info?.score !== undefined
+        ? getScorePercent(seat.mla_info.score)
+        : undefined,
+    partyName: seat.mla_info?.party,
   }
 }
 
@@ -457,8 +466,8 @@ export function getTransformedMlaListForCards(
   )
 
   return cards.sort((left, right) => {
-    const leftScore = Number(left.percentage.replace("%", ""))
-    const rightScore = Number(right.percentage.replace("%", ""))
+    const leftScore = Number(left.percentage?.replace("%", "") ?? "0")
+    const rightScore = Number(right.percentage?.replace("%", "") ?? "0")
     return tag.endsWith("Top") ? rightScore - leftScore : leftScore - rightScore
   })
 }

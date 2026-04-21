@@ -287,21 +287,31 @@ export function MlaCard({
             <p className={styles.horizontalItemTag}>{item.tag.label}</p>
           ) : null}
         </div>
-        <div className={styles.horizontalItemImage}>
-          <img
-            src={item.imageUrl}
-            alt={item.title}
-            className={styles.cardImage}
-          />
-        </div>
+        {item.imageUrl ? (
+          <div className={styles.horizontalItemImage}>
+            <img
+              src={item.imageUrl}
+              alt={item.title ?? ""}
+              className={styles.cardImage}
+            />
+          </div>
+        ) : null}
         <div className={styles.horizontalItemContent}>
-          <h4 className={styles.horizontalCardTitle}>{item.title}</h4>
+          {item.title ? (
+            <h4 className={styles.horizontalCardTitle}>{item.title}</h4>
+          ) : null}
           <p className={styles.horizontalCardSubTitle}>{item.subTitle}</p>
           <div className={styles.horizontalDivider} />
           <div className={styles.horizontalItemPercentage}>
             <div>
-              {item.percentage}
-              <span className={styles.horizontalScoreTag}> {scoreLabel}</span>
+              {item.percentage ? (
+                <>
+                  {item.percentage}
+                  <span className={styles.horizontalScoreTag}>
+                    {` ${scoreLabel}`}
+                  </span>
+                </>
+              ) : null}
             </div>
             <ArrowIcon
               className={styles.cardArrowIcon}
@@ -326,20 +336,26 @@ export function MlaCard({
       className={styles.verticalCard}
       onClick={() => onClick(item.id)}
     >
-      <div className={styles.verticalItemImage}>
-        <img
-          src={item.imageUrl}
-          alt={item.title}
-          className={styles.cardImage}
-        />
-        <img
-          src={item.smallImageUrl}
-          alt={item.partyName}
-          className={styles.partyBadge}
-        />
-      </div>
+      {item.imageUrl ? (
+        <div className={styles.verticalItemImage}>
+          <img
+            src={item.imageUrl}
+            alt={item.title ?? ""}
+            className={styles.cardImage}
+          />
+          {item.smallImageUrl ? (
+            <img
+              src={item.smallImageUrl}
+              alt={item.partyName ?? ""}
+              className={styles.partyBadge}
+            />
+          ) : null}
+        </div>
+      ) : null}
       <div className={styles.verticalItemContent}>
-        <h4 className={styles.verticalTitle}>{item.title}</h4>
+        {item.title ? (
+          <h4 className={styles.verticalTitle}>{item.title}</h4>
+        ) : null}
         {item.tag?.label ? (
           <span className={styles.verticalItemTag}>{item.tag.label}</span>
         ) : null}
@@ -347,8 +363,10 @@ export function MlaCard({
       </div>
       <div className={styles.verticalAside}>
         <div>
-          {item.percentage}
-          <p className={styles.verticalScoreTag}>{scoreLabel}</p>
+          {item.percentage ? item.percentage : null}
+          {item.percentage ? (
+            <p className={styles.verticalScoreTag}>{scoreLabel}</p>
+          ) : null}
         </div>
         <ArrowIcon
           className={styles.cardArrowIcon}
@@ -553,7 +571,7 @@ export function ItemDetail({
       shareArticle,
     ]
   )
-  const noPercent = item.cardDetails.percentage.replace("%", "")
+  const noPercent = item.cardDetails.percentage?.replace("%", "") ?? "0"
 
   return (
     <div
@@ -579,7 +597,7 @@ export function ItemDetail({
                     subSource: item.cardDetails.subTitle,
                     constituencyName:
                       item.cardDetails.subTitle.split(",")[0] ?? "",
-                    candidateName: item.cardDetails.title,
+                    candidateName: item.cardDetails.title ?? "",
                     translations,
                   })
                 }
@@ -616,41 +634,53 @@ export function ItemDetail({
         ) : null}
 
         <div className={styles.detailTop}>
-          <img
-            src={item.cardDetails.imageUrl}
-            alt={item.cardDetails.title}
-            className={styles.detailImage}
-          />
-          <h2 className={styles.detailName}>{item.cardDetails.title}</h2>
+          {item.cardDetails.imageUrl ? (
+            <img
+              src={item.cardDetails.imageUrl}
+              alt={item.cardDetails.title ?? ""}
+              className={styles.detailImage}
+            />
+          ) : null}
+          {item.cardDetails.title ? (
+            <h2 className={styles.detailName}>{item.cardDetails.title}</h2>
+          ) : null}
           {item.cardDetails.tag?.label ? (
             <span className={styles.rankTag}>{item.cardDetails.tag.label}</span>
           ) : null}
-          <div className={styles.detailPartyRow}>
-            <img
-              src={item.cardDetails.smallImageUrl}
-              alt={item.cardDetails.partyName}
-              className={styles.detailPartyImage}
-            />
-            <span>{item.cardDetails.partyName}</span>
-          </div>
+          {item.cardDetails.smallImageUrl || item.cardDetails.partyName ? (
+            <div className={styles.detailPartyRow}>
+              {item.cardDetails.smallImageUrl ? (
+                <img
+                  src={item.cardDetails.smallImageUrl}
+                  alt={item.cardDetails.partyName ?? ""}
+                  className={styles.detailPartyImage}
+                />
+              ) : null}
+              {item.cardDetails.partyName ? (
+                <span>{item.cardDetails.partyName}</span>
+              ) : null}
+            </div>
+          ) : null}
           <p className={styles.detailSubtitle}>{item.cardDetails.subTitle}</p>
         </div>
 
-        <div className={styles.scoreGrid}>
-          <div>
-            <div className={styles.scoreValue}>
-              {item.cardDetails.percentage}
+        {item.cardDetails.percentage ? (
+          <div className={styles.scoreGrid}>
+            <div>
+              <div className={styles.scoreValue}>
+                {item.cardDetails.percentage}
+              </div>
+              <div className={styles.scoreLegend}>👍 {translations.yes}</div>
             </div>
-            <div className={styles.scoreLegend}>👍 {translations.yes}</div>
+            <div className={styles.scoreCenter}>{translations.totalScore}</div>
+            <div>
+              <div
+                className={styles.scoreValue}
+              >{`${100 - Number(noPercent)}%`}</div>
+              <div className={styles.scoreLegend}>{translations.no} 👎</div>
+            </div>
           </div>
-          <div className={styles.scoreCenter}>{translations.totalScore}</div>
-          <div>
-            <div
-              className={styles.scoreValue}
-            >{`${100 - Number(noPercent)}%`}</div>
-            <div className={styles.scoreLegend}>{translations.no} 👎</div>
-          </div>
-        </div>
+        ) : null}
 
         {item.cardDetails.yourGivenScore ? (
           <div className={styles.scoreGrid}>
@@ -685,7 +715,7 @@ export function ItemDetail({
                 category: "MLA Page",
                 subSource: item.cardDetails.subTitle,
                 constituencyName: item.cardDetails.subTitle.split(",")[0] ?? "",
-                candidateName: item.cardDetails.title,
+                candidateName: item.cardDetails.title ?? "",
                 translations,
               })
             }
@@ -869,9 +899,9 @@ export function Tab4Section({
             items={selectedItem.listItems[0]?.progressDetails ?? []}
             shareButtonText={translations.shareButtonText}
             highlightTerms={[
-              selectedItem.cardDetails.title,
+              selectedItem.cardDetails.title ?? "",
               selectedItem.cardDetails.subTitle.split(",")[0] ?? "",
-              selectedItem.cardDetails.partyName,
+              selectedItem.cardDetails.partyName ?? "",
             ]}
             renderItemHeader={(_item, index) => {
               if (index !== 0) {
@@ -880,29 +910,38 @@ export function Tab4Section({
 
               return (
                 <div className={styles.progressMlaHeader}>
-                  <img
-                    src={selectedItem.cardDetails.imageUrl}
-                    alt={selectedItem.cardDetails.title}
-                    className={styles.progressMlaImage}
-                  />
+                  {selectedItem.cardDetails.imageUrl ? (
+                    <img
+                      src={selectedItem.cardDetails.imageUrl}
+                      alt={selectedItem.cardDetails.title ?? ""}
+                      className={styles.progressMlaImage}
+                    />
+                  ) : null}
                   <div className={styles.progressMlaText}>
                     <div className={styles.progressMlaName}>
-                      {selectedItem.cardDetails.title}
+                      {selectedItem.cardDetails.title ?? ""}
                     </div>
                     <div className={styles.progressMlaMeta}>
                       {selectedItem.cardDetails.subTitle}
                     </div>
                   </div>
-                  <div className={styles.progressMlaParty}>
-                    <img
-                      src={selectedItem.cardDetails.smallImageUrl}
-                      alt={selectedItem.cardDetails.partyName}
-                      className={styles.progressMlaPartyIcon}
-                    />
-                    <div className={styles.progressMlaPartyName}>
-                      {selectedItem.cardDetails.partyName}
+                  {selectedItem.cardDetails.smallImageUrl ||
+                  selectedItem.cardDetails.partyName ? (
+                    <div className={styles.progressMlaParty}>
+                      {selectedItem.cardDetails.smallImageUrl ? (
+                        <img
+                          src={selectedItem.cardDetails.smallImageUrl}
+                          alt={selectedItem.cardDetails.partyName ?? ""}
+                          className={styles.progressMlaPartyIcon}
+                        />
+                      ) : null}
+                      {selectedItem.cardDetails.partyName ? (
+                        <div className={styles.progressMlaPartyName}>
+                          {selectedItem.cardDetails.partyName}
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
+                  ) : null}
                 </div>
               )
             }}

@@ -118,16 +118,16 @@ export interface ProgressDetails {
 
 export interface CardDetails {
   id: string
-  imageUrl: string
-  smallImageUrl: string
+  imageUrl?: string
+  smallImageUrl?: string
   tag?: {
     label: string
     bgColor: string
   }
-  title: string
-  partyName: string
+  title?: string
+  partyName?: string
   subTitle: string
-  percentage: string
+  percentage?: string
   yourGivenScore?: string
 }
 
@@ -254,7 +254,7 @@ export interface Seat {
   seat_name: string
   seat_english_name: string
   tags?: string[]
-  mla_info: {
+  mla_info?: {
     name: string
     score: number
     position: string
