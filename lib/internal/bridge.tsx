@@ -71,6 +71,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react"
@@ -80,12 +81,36 @@ import { LoaderIcon } from "lucide-react"
 // Native bridge interface detection
 // ---------------------------------------------------------------------------
 
-const android = (globalThis?.window as any)?.AndroidInterface
-const ios = (globalThis?.window as any)?.webkit?.messageHandlers
+type AndroidBridge = Record<string, any> | undefined
+type IOSBridge =
+  | Record<string, { postMessage?: (value: unknown) => void }>
+  | undefined
 
-const isWebview = !!(android || ios?.openFullWeb)
-const isAndroidClient = !!android
-const isIOSClient = !!ios?.openFullWeb
+const getNativeClients = (): { android: AndroidBridge; ios: IOSBridge } => {
+  if (typeof window === "undefined") {
+    return {
+      android: undefined,
+      ios: undefined,
+    }
+  }
+
+  return {
+    android: (globalThis.window as any)?.AndroidInterface,
+    ios: (globalThis.window as any)?.webkit?.messageHandlers,
+  }
+}
+
+const getClientState = () => {
+  const { android, ios } = getNativeClients()
+
+  return {
+    android,
+    ios,
+    isWebview: Boolean(android || ios?.openFullWeb),
+    isAndroidClient: Boolean(android),
+    isIOSClient: Boolean(ios?.openFullWeb),
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -103,23 +128,38 @@ const getUniqueCallbackMethod = (callback: (res: any) => void): string => {
   return functionName
 }
 
+const parseBridgeResponse = <T,>(value: unknown, fallback: T): T => {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as T
+    } catch (error) {
+      console.error("[bridge] failed to parse native response", error)
+      return fallback
+    }
+  }
+
+  return (value ?? fallback) as T
+}
+
 // ---------------------------------------------------------------------------
 // Bridge methods
 // ---------------------------------------------------------------------------
 
 const closeScreen = () => {
+  const { android, ios, isAndroidClient } = getClientState()
+
   if (isAndroidClient) {
-    if (android.closeScreenV2) {
+    if (android?.closeScreenV2) {
       android.closeScreenV2()
       return
     }
-    android.closeScreen()
+    android?.closeScreen?.()
   } else {
-    if (ios.closeScreenV2) {
-      ios.closeScreenV2.postMessage("")
+    if (ios?.closeScreenV2) {
+      ios.closeScreenV2.postMessage?.("")
       return
     }
-    ios.closeScreen.postMessage("")
+    ios?.closeScreen?.postMessage?.("")
   }
 }
 
@@ -161,6 +201,7 @@ type TAvailableMethods =
   | "openFullWeb"
 
 const methodExists = (methods: TAvailableMethods[]) => {
+  const { android, ios } = getClientState()
   const rawData = methods.map((method) => {
     if (typeof android?.[method] === "function") {
       return android[method]
@@ -173,45 +214,125 @@ const methodExists = (methods: TAvailableMethods[]) => {
     return undefined
   })
 
-  return {
+  const result = {
     rawData,
     and: rawData.every(Boolean),
     or: rawData.some(Boolean),
   }
+
+  if (
+    methods.includes("getAppUserData") ||
+    methods.includes("getAppUserDataV2") ||
+    methods.includes("getUserSelectedPreferences")
+  ) {
+    console.log("[bridge] methodExists", {
+      methods,
+      isAndroidClient: Boolean(android),
+      isIOSClient: Boolean(ios?.openFullWeb),
+      result,
+    })
+  }
+
+  return result
 }
 
 const getAppUserData = (): Promise<IAppUserData> => {
   return new Promise((resolve) => {
+    const { android, ios, isAndroidClient } = getClientState()
+
     if (isAndroidClient) {
-      if (android.getAppUserDataV2) {
-        resolve(JSON.parse(android.getAppUserDataV2()))
+      if (android?.getAppUserDataV2) {
+        console.log("[bridge] getAppUserData via android.getAppUserDataV2")
+        resolve(
+          parseBridgeResponse<IAppUserData>(android.getAppUserDataV2(), {
+            db_id: "",
+            app_version: "",
+            app_version_code: "",
+            app_platform: "android",
+            auth_token: "",
+          })
+        )
         return null
       }
-      resolve(android.getAppUserData())
+
+      if (android?.getAppUserData) {
+        console.log("[bridge] getAppUserData via android.getAppUserData")
+        resolve(
+          parseBridgeResponse<IAppUserData>(android.getAppUserData(), {
+            db_id: "",
+            app_version: "",
+            app_version_code: "",
+            app_platform: "android",
+            auth_token: "",
+          })
+        )
+        return null
+      }
+
+      console.log("[bridge] getAppUserData unavailable on android bridge")
+      resolve({
+        db_id: "",
+        app_version: "",
+        app_version_code: "",
+        app_platform: "android",
+        auth_token: "",
+      })
       return null
     }
+
     const callback = getUniqueCallbackMethod((res) => {
       resolve(res)
       return ""
     })
 
-    if (ios.getAppUserDataV2) {
-      ios.getAppUserDataV2.postMessage({ callback })
+    if (ios?.getAppUserDataV2) {
+      console.log("[bridge] getAppUserData via ios.getAppUserDataV2")
+      ios.getAppUserDataV2.postMessage?.({ callback })
       return null
     }
 
-    ios.getAppUserData.postMessage({ callback })
+    if (ios?.getAppUserData) {
+      console.log("[bridge] getAppUserData via ios.getAppUserData")
+      ios.getAppUserData.postMessage?.({ callback })
+      return null
+    }
+
+    console.log("[bridge] getAppUserData unavailable on ios bridge")
+    resolve({
+      db_id: "",
+      app_version: "",
+      app_version_code: "",
+      app_platform: "ios",
+      auth_token: "",
+    })
   })
 }
 
 const getUserSelectedPreferences = (): Promise<IUserSelectedPreferences> => {
   return new Promise((resolve) => {
+    const { android, ios, isAndroidClient } = getClientState()
+
     if (isAndroidClient) {
-      if (android.getUserSelectedPreferences) {
-        resolve(JSON.parse(android.getUserSelectedPreferences()))
+      if (android?.getUserSelectedPreferences) {
+        console.log(
+          "[bridge] getUserSelectedPreferences via android.getUserSelectedPreferences"
+        )
+        resolve(
+          parseBridgeResponse<IUserSelectedPreferences>(
+            android.getUserSelectedPreferences(),
+            {
+              categories: [],
+              states: [],
+              cities: [],
+            }
+          )
+        )
         return null
       }
 
+      console.log(
+        "[bridge] getUserSelectedPreferences unavailable on android bridge"
+      )
       resolve({ categories: [], states: [], cities: [] })
       return null
     }
@@ -227,21 +348,27 @@ const getUserSelectedPreferences = (): Promise<IUserSelectedPreferences> => {
       return ""
     })
 
-    if (ios.getUserSelectedPreferences) {
-      ios.getUserSelectedPreferences.postMessage({ callback })
+    if (ios?.getUserSelectedPreferences) {
+      console.log(
+        "[bridge] getUserSelectedPreferences via ios.getUserSelectedPreferences"
+      )
+      ios.getUserSelectedPreferences.postMessage?.({ callback })
       return null
     }
 
+    console.log("[bridge] getUserSelectedPreferences unavailable on ios bridge")
     resolve({ categories: [], states: [], cities: [] })
   })
 }
 
 const enablePullToRefresh = (val: boolean) => {
+  const { android, ios, isAndroidClient } = getClientState()
+
   if (isAndroidClient) {
-    return android.enablePullToRefresh(`${val}`)
+    return android?.enablePullToRefresh?.(`${val}`)
   }
 
-  return ios.enablePullToRefresh.postMessage(`${val}`)
+  return ios?.enablePullToRefresh?.postMessage?.(`${val}`)
 }
 
 const triggerLogin = (params: { loginMessage: string; source: string }) => {
@@ -262,15 +389,17 @@ const triggerLogin = (params: { loginMessage: string; source: string }) => {
 
 const openViaDeepLinkJsonData = (jsonData: any) => {
   try {
+    const { android, ios, isAndroidClient } = getClientState()
+
     if (isAndroidClient) {
-      if (android.openViaDeepLinkJsonData) {
+      if (android?.openViaDeepLinkJsonData) {
         android.openViaDeepLinkJsonData(JSON.stringify(jsonData))
       }
       return
     }
 
-    if (ios.openViaDeepLinkJsonData) {
-      ios.openViaDeepLinkJsonData.postMessage(jsonData)
+    if (ios?.openViaDeepLinkJsonData) {
+      ios.openViaDeepLinkJsonData.postMessage?.(jsonData)
     }
   } catch (err) {
     console.error(err)
@@ -287,15 +416,17 @@ const trackMixpanelEvent = (payload: TrackingPayload) => {
   }
 
   try {
+    const { android, ios, isAndroidClient } = getClientState()
+
     if (isAndroidClient) {
-      if (android.trackMixpanelEvent) {
+      if (android?.trackMixpanelEvent) {
         android.trackMixpanelEvent(JSON.stringify(event))
       }
       return
     }
 
-    if (ios.trackMixpanelEvent) {
-      ios.trackMixpanelEvent.postMessage(event)
+    if (ios?.trackMixpanelEvent) {
+      ios.trackMixpanelEvent.postMessage?.(event)
     }
   } catch (err) {
     console.error(err)
@@ -304,15 +435,17 @@ const trackMixpanelEvent = (payload: TrackingPayload) => {
 
 const trackInteractivePage = (jsonData: TrackingPayload) => {
   try {
+    const { android, ios, isAndroidClient } = getClientState()
+
     if (isAndroidClient) {
-      if (android.trackInteractivePage) {
+      if (android?.trackInteractivePage) {
         android.trackInteractivePage(JSON.stringify(jsonData))
       }
       return
     }
 
-    if (ios.trackInteractivePage) {
-      ios.trackInteractivePage.postMessage(jsonData)
+    if (ios?.trackInteractivePage) {
+      ios.trackInteractivePage.postMessage?.(jsonData)
     }
   } catch (err) {
     console.error(err)
@@ -327,8 +460,10 @@ const shareArticle = (
   overrideTemplate?: string,
   hasWatermark?: boolean
 ) => {
+  const { android, ios, isAndroidClient } = getClientState()
+
   if (isAndroidClient) {
-    if (android.shareArticleV2) {
+    if (android?.shareArticleV2) {
       android.shareArticleV2(
         JSON.stringify({
           storyUrl,
@@ -342,15 +477,15 @@ const shareArticle = (
       return
     }
 
-    if (android.shareArticle) {
+    if (android?.shareArticle) {
       android.shareArticle(storyUrl, title, imageUrl)
     }
 
     return
   }
 
-  if (ios.shareArticleV2) {
-    ios.shareArticleV2.postMessage({
+  if (ios?.shareArticleV2) {
+    ios.shareArticleV2.postMessage?.({
       storyUrl,
       title,
       imageUrl,
@@ -361,8 +496,8 @@ const shareArticle = (
     return
   }
 
-  if (ios.shareArticle) {
-    ios.shareArticle.postMessage({ storyUrl, title, imageUrl })
+  if (ios?.shareArticle) {
+    ios.shareArticle.postMessage?.({ storyUrl, title, imageUrl })
     return
   }
 
@@ -378,15 +513,17 @@ const shareView = (params: {
   imageUrl?: string
   shareTextAndLink?: string
 }) => {
+  const { android, ios, isWebview, isAndroidClient } = getClientState()
+
   if (isWebview) {
     const payload = {
       imageUrl: params.imageUrl,
       overrideTemplate: params.shareTextAndLink,
     }
     if (isAndroidClient) {
-      android.shareArticleV2?.(JSON.stringify(payload))
+      android?.shareArticleV2?.(JSON.stringify(payload))
     } else {
-      ios.shareArticleV2?.postMessage(payload)
+      ios?.shareArticleV2?.postMessage?.(payload)
     }
   } else {
     navigator.share?.({
@@ -510,7 +647,68 @@ export function WebviewProvider({
   children: ReactNode
   mockInDevMode?: boolean
 }) {
-  if (!isWebview && !mockInDevMode) {
+  const [clientState, setClientState] = useState(getClientState)
+
+  useEffect(() => {
+    const syncClientState = () => {
+      setClientState((currentState) => {
+        const nextState = getClientState()
+
+        if (
+          currentState.isWebview === nextState.isWebview &&
+          currentState.isAndroidClient === nextState.isAndroidClient &&
+          currentState.isIOSClient === nextState.isIOSClient
+        ) {
+          return currentState
+        }
+
+        console.log("[bridge] client state updated", {
+          isWebview: nextState.isWebview,
+          isAndroidClient: nextState.isAndroidClient,
+          isIOSClient: nextState.isIOSClient,
+        })
+
+        return nextState
+      })
+    }
+
+    syncClientState()
+
+    const interval = window.setInterval(syncClientState, 250)
+
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [])
+
+  const contextValue = useMemo<WebviewContextValue>(
+    () =>
+      clientState.isWebview
+        ? {
+            isWebview: clientState.isWebview,
+            isAndroidClient: clientState.isAndroidClient,
+            isIOSClient: clientState.isIOSClient,
+            getAppUserData,
+            getUserSelectedPreferences,
+            closeScreen,
+            enablePullToRefresh,
+            openViaDeepLinkJsonData,
+            triggerLogin,
+            shareView,
+            shareArticle,
+            trackMixpanelEvent,
+            trackInteractivePage,
+            methodExists,
+          }
+        : mockContextValue,
+    [
+      clientState.isAndroidClient,
+      clientState.isIOSClient,
+      clientState.isWebview,
+    ]
+  )
+
+  if (!clientState.isWebview && !mockInDevMode) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background px-6">
         <LoaderIcon className="size-14 animate-spin text-muted-foreground" />
@@ -519,28 +717,7 @@ export function WebviewProvider({
   }
 
   return (
-    <WebviewContext.Provider
-      value={
-        isWebview
-          ? {
-              isWebview,
-              isAndroidClient,
-              isIOSClient,
-              getAppUserData,
-              getUserSelectedPreferences,
-              closeScreen,
-              enablePullToRefresh,
-              openViaDeepLinkJsonData,
-              triggerLogin,
-              shareView,
-              shareArticle,
-              trackMixpanelEvent,
-              trackInteractivePage,
-              methodExists,
-            }
-          : mockContextValue
-      }
-    >
+    <WebviewContext.Provider value={contextValue}>
       {children}
     </WebviewContext.Provider>
   )
@@ -559,9 +736,30 @@ export function useWebviewContext(): WebviewContextValue {
 }
 
 export const useIsWebview = () => {
-  const [webview, setWebview] = useState(true)
+  const [webview, setWebview] = useState(() => getClientState().isWebview)
+
   useEffect(() => {
-    setWebview(isWebview)
+    const syncWebview = () => {
+      setWebview(getClientState().isWebview)
+    }
+
+    syncWebview()
+
+    const interval = window.setInterval(() => {
+      const nextIsWebview = getClientState().isWebview
+
+      setWebview((currentIsWebview) => {
+        if (currentIsWebview === nextIsWebview) {
+          return currentIsWebview
+        }
+
+        return nextIsWebview
+      })
+    }, 250)
+
+    return () => {
+      window.clearInterval(interval)
+    }
   }, [])
 
   return webview
@@ -581,7 +779,7 @@ export const useIsUserSignedIn = (pollingInterval: number = 250) => {
       if (isRunning) return
       isRunning = true
       try {
-        if (!isWebview) {
+        if (!getClientState().isWebview) {
           setIsUserSignedIn(false)
           isRunning = false
           return
@@ -616,12 +814,12 @@ export const useIsUserSignedIn = (pollingInterval: number = 250) => {
 
 export const usePullToRefreshDisabler = () => {
   useEffect(() => {
-    if (isWebview) {
+    if (getClientState().isWebview) {
       enablePullToRefresh(false)
     }
 
     return () => {
-      if (isWebview) {
+      if (getClientState().isWebview) {
         enablePullToRefresh(true)
       }
     }
