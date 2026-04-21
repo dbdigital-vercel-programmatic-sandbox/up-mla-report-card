@@ -96,7 +96,10 @@ export function usePrefillDistrictsAndSeat({
         window.localStorage.getItem(districtStorageKey)
       )
       const hasLocalSeat = Boolean(window.localStorage.getItem(seatStorageKey))
-      const canReadAppUserData = methodExists(["getAppUserData"]).or
+      const canReadAppUserData = methodExists([
+        "getAppUserData",
+        "getAppUserDataV2",
+      ]).or
 
       console.log(
         "[usePrefillDistrictsAndSeat] checking survey response prefill",
@@ -271,7 +274,10 @@ export function usePrefillDistrictsAndSeat({
       }
 
       const canReadPreferences = methodExists(["getUserSelectedPreferences"]).or
-      const canReadAppUserData = methodExists(["getAppUserData"]).or
+      const canReadAppUserData = methodExists([
+        "getAppUserData",
+        "getAppUserDataV2",
+      ]).or
 
       if (!canReadPreferences || !canReadAppUserData) {
         console.log(
