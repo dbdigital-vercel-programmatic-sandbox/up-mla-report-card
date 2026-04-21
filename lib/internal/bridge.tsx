@@ -559,7 +559,12 @@ export function useWebviewContext(): WebviewContextValue {
 }
 
 export const useIsWebview = () => {
-  return isWebview
+  const [webview, setWebview] = useState(true)
+  useEffect(() => {
+    setWebview(isWebview)
+  }, [])
+
+  return webview
 }
 
 export const useIsUserSignedIn = (pollingInterval: number = 250) => {
