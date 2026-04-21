@@ -45,6 +45,9 @@ export function MlaReportCardClient({
   campaignData,
   translations,
 }: Props) {
+  /**
+   * disable refresh on drag and pull
+   */
   usePullToRefreshDisabler()
 
   const {
