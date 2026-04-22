@@ -208,7 +208,7 @@ export function ProgressReport({
                   <span>{boldNumberAndFollowingWord(section.description)}</span>
                 </p>
               ) : null}
-              {section.progressBars.map((bar, barIndex) => (
+              {section.progressBars.map((bar) => (
                 <div key={bar.title} className={styles.progressBarRow}>
                   <div className={styles.progressBarTrack}>
                     <span className={styles.progressBarTitleText}>
@@ -218,8 +218,8 @@ export function ProgressReport({
                       className={styles.progressBarFill}
                       style={{
                         width: bar.percent,
-                        backgroundColor: barIndex === 0 ? "#8BC66F" : "#BEBEBE",
-                        opacity: 0.3,
+                        backgroundColor: bar.color,
+                        opacity: bar.opacity,
                       }}
                     />
                     <span className={styles.progressBarValueText}>
