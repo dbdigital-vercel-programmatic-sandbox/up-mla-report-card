@@ -373,7 +373,9 @@ export function buildCardDetails(
 function buildQuestionProgress(
   question: Question,
   translations: MlaTranslations,
-  userResponse?: UserResponse
+  userResponse?: UserResponse,
+  isFirstQuestion = false,
+  hasMlaInfo = false
 ): ProgressDetails {
   const selectedAnswer = userResponse?.response?.answers.find(
     (answer) => answer.question === question.id
@@ -381,11 +383,28 @@ function buildQuestionProgress(
   const selectedOption = question.options.find(
     (option) => option.id === selectedAnswer?.options[0]
   )
+  const topOption = question.options.reduce<
+    Question["options"][number] | undefined
+  >((bestOption, option) => {
+    if (!bestOption || option.score > bestOption.score) {
+      return option
+    }
+
+    return bestOption
+  }, undefined)
+  // For the first question with MLA info, preserve the source option order and
+  // highlight only the highest-scoring option instead of the first one.
+  const shouldHighlightTopOption = isFirstQuestion && hasMlaInfo
 
   const progressBars = question.options.map((option, index) => ({
     title: option.text,
     percent: getScorePercent(option.score),
-    color: index === 0 ? "#8BC66F" : "#BEBEBE",
+    color:
+      shouldHighlightTopOption && option.id === topOption?.id
+        ? "#8BC66F"
+        : !shouldHighlightTopOption && index === 0
+          ? "#8BC66F"
+          : "#BEBEBE",
     opacity: 0.3,
     icon: "",
   }))
@@ -400,16 +419,6 @@ function buildQuestionProgress(
   }
 
   if (selectedOption) {
-    const topOption = question.options.reduce<
-      Question["options"][number] | undefined
-    >((bestOption, option) => {
-      if (!bestOption || option.score > bestOption.score) {
-        return option
-      }
-
-      return bestOption
-    }, undefined)
-
     detail.footerDescription = {
       color: selectedOption.id === topOption?.id ? "#5EB30D" : "#BEBEBE",
       text: translations.optionChosen.replace(
@@ -441,8 +450,14 @@ export function getSelectedSeat(
           {
             id: seat.id.toString(),
             text: translations.reportCardProgressBarTitle,
-            progressDetails: seat.questions.map((question) =>
-              buildQuestionProgress(question, translations, userResponse)
+            progressDetails: seat.questions.map((question, index) =>
+              buildQuestionProgress(
+                question,
+                translations,
+                userResponse,
+                index === 0,
+                Boolean(seat.mla_info)
+              )
             ),
           },
         ],
