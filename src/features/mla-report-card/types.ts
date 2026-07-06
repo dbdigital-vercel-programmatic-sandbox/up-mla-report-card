@@ -95,6 +95,17 @@ export interface MlaReportCardData {
     deeplink: string
     title: string
     headerText: string
+    appPromotion: {
+      campaign: string
+      channel: string
+      feature: string
+      ogImage: string
+      title: string
+      description: string
+      bodyText: string
+      qrText: string
+      buttonText: string
+    }
   }
   districts: District[]
 }
