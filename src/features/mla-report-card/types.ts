@@ -5,7 +5,6 @@ export interface MlaTranslations {
   chooseDistrict: string
   checkSurveyResultDescription: string
   surveyResultHeading: string
-  commonShareText: string
   districtSheetTitle: string
   districtSearchPlaceholder: string
   seatSheetTitle: string
@@ -95,16 +94,15 @@ export interface MlaReportCardData {
     deeplink: string
     title: string
     headerText: string
+    ogImage: string
+    shareText: string
     appPromotion: {
-      campaign: string
-      channel: string
-      feature: string
-      ogImage: string
+      logo: string
       title: string
-      description: string
       bodyText: string
       qrText: string
       buttonText: string
+      webBlockerLink: string
     }
   }
   districts: District[]

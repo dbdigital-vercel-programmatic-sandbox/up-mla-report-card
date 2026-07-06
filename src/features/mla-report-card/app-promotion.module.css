@@ -49,17 +49,11 @@
 }
 
 .logoMark {
+  display: block;
   width: 100%;
   height: 100%;
   border-radius: 18px;
-  background: var(--secondary-common-color);
-  color: var(--white-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 52px;
-  font-weight: 800;
-  line-height: 1;
+  object-fit: contain;
 }
 
 .bodyText {

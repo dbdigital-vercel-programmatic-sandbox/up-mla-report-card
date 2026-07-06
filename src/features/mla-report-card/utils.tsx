@@ -133,7 +133,8 @@ export function shareCommon(args: {
   source: string
   category: string
   subSource: string
-  translations: MlaTranslations
+  shareText: string
+  shareImage: string
 }) {
   if (!args.bridgeActions.isWebview) {
     return
@@ -155,10 +156,10 @@ export function shareCommon(args: {
 
   args.bridgeActions.shareArticle(
     args.deeplink,
-    args.translations.commonShareText,
-    "",
+    args.shareText,
+    args.shareImage,
     CONTENT_TYPE,
-    `${args.translations.commonShareText}${args.deeplink}`
+    `${args.shareText}\n${args.deeplink}`
   )
 }
 

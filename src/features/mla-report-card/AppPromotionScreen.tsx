@@ -16,14 +16,14 @@ export function AppPromotionScreen({ data }: Props) {
         <div className={styles.visualWrap}>
           <img
             className={styles.visual}
-            src={promotion.ogImage}
+            src={data.meta.ogImage}
             alt={promotion.title}
           />
         </div>
 
         <div className={styles.content}>
           <div className={styles.logoWrap} aria-hidden="true">
-            <div className={styles.logoMark}>भ</div>
+            <img className={styles.logoMark} src={promotion.logo} alt="" />
           </div>
 
           <p className={styles.bodyText}>{promotion.bodyText}</p>
@@ -36,7 +36,7 @@ export function AppPromotionScreen({ data }: Props) {
             </div>
           </div>
 
-          <a className={styles.downloadButton} href={data.meta.deeplink}>
+          <a className={styles.downloadButton} href={promotion.webBlockerLink}>
             {promotion.buttonText}
           </a>
         </div>

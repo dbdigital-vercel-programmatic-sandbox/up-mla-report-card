@@ -108,7 +108,8 @@ export function MlaReportCardClient({ data, translations }: Props) {
                 source,
                 category: "Top Sharing button",
                 subSource: "Top Sharing button",
-                translations,
+                shareText: data.meta.shareText,
+                shareImage: data.meta.ogImage,
               })
             }
           >

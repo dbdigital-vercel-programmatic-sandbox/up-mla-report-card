@@ -547,7 +547,8 @@ export function MlaReportCardSection({
                 category: "MLA Page",
                 subSource:
                   progressItem.title ?? selectedItem.cardDetails.subTitle,
-                translations,
+                shareText: data.meta.shareText,
+                shareImage: data.meta.ogImage,
               })
             }
           />

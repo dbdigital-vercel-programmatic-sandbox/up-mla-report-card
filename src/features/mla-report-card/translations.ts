@@ -8,8 +8,6 @@ export const mlaTranslations: MlaTranslations = {
   checkSurveyResultDescription:
     "सर्वे का रिजल्ट देखने के लिए ऊपर दिए गए विकल्पों का चयन करें",
   surveyResultHeading: "सर्वे का रिजल्ट",
-  commonShareText:
-    "*उत्तर प्रदेश चुनाव 2027 के उम्मीदवारों के सबसे बड़े सर्वे का रिजल्ट देखिए*\nकौनसी पार्टी है जनता की पहली पसंद, किस विधायक को नकारा\n",
   districtSheetTitle: "आपका जिला",
   districtSearchPlaceholder: "अपना जिला खोजें",
   seatSheetTitle: "आपकी विधानसभा सीट",

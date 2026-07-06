@@ -328,6 +328,7 @@ const IosApp = (
 const SurveyFormBlockingPopupComponent = () => {
   const router = useRouter()
   const params = useParams()
+  const [logoLoadFailed, setLogoLoadFailed] = React.useState(false)
 
   const qrCodeImg =
     "https://images.bhaskarassets.com/thumb/800x0/web2images/web-frontend/mla-report-card/UPMLASurveyResult2026_QR-code.jpeg"
@@ -336,6 +337,8 @@ const SurveyFormBlockingPopupComponent = () => {
     "भास्कर सर्वे का रिजल्ट सिर्फ एप पर ही देख सकते हैं। रिजल्ट जानने के लिए एप डाउनलोड करें। "
   const ogImageUrl =
     "https://images.bhaskarassets.com/thumb/600x0/web2images/web-frontend/mla-report-card/up-2026-result-og-image-hi.png"
+  const logoUrl =
+    "https://uk-survey-form.bhaskarapp.com/webview-survey/web-blocker-logo.png"
 
   const appleStore = "https://apps.apple.com/in/app/dainik-bhaskar/id123456789"
   const playStore =
@@ -370,9 +373,18 @@ const SurveyFormBlockingPopupComponent = () => {
 
         <div className={Styles.contentBox}>
           <div className={Styles.logo}>
-            {React.cloneElement(RoundedLogoIconSvgComponent, {
-              className: Styles.logoImg,
-            })}
+            {logoLoadFailed ? (
+              React.cloneElement(RoundedLogoIconSvgComponent, {
+                className: Styles.logoImg,
+              })
+            ) : (
+              <img
+                className={Styles.logoImg}
+                src={logoUrl}
+                alt="Dainik Bhaskar"
+                onError={() => setLogoLoadFailed(true)}
+              />
+            )}
           </div>
 
           <p className={Styles.text}>{text}</p>
