@@ -7,11 +7,14 @@ import { useWebviewContext } from "@/bridge"
 import type { District, UserResponse } from "./types"
 
 type UsePrefillDistrictsAndSeatArgs = {
-  campaignId: string
   districts: District[]
   setDistrict: (districtId: number | null) => void
   setVidhanSeat: (seatId: number | null) => void
 }
+
+const REPORT_CARD_SURVEY_ID = "23"
+const DISTRICT_STORAGE_KEY = "mlaReportCard:selectedDistrictId"
+const SEAT_STORAGE_KEY = "mlaReportCard:selectedSeatId"
 
 type AppUserData = {
   auth_token: string
@@ -36,20 +39,19 @@ function getCityLevelListingUrl(value: string) {
 }
 
 export function usePrefillDistrictsAndSeat({
-  campaignId,
   districts,
   setDistrict,
   setVidhanSeat,
 }: UsePrefillDistrictsAndSeatArgs) {
   const { getAppUserData, getUserSelectedPreferences, methodExists } =
     useWebviewContext()
-  const districtStorageKey = `selectedFirstOption-campaign-${campaignId}`
-  const seatStorageKey = `selectedSecondOption-campaign-${campaignId}`
+  const districtStorageKey = DISTRICT_STORAGE_KEY
+  const seatStorageKey = SEAT_STORAGE_KEY
   const hasAutoSelectedDistrictRef = useRef(false)
   const [userResponse, setUserResponse] = useState<UserResponse | null>(null)
   const [canRunPreferencesFallback, setCanRunPreferencesFallback] =
     useState(false)
-  const surveyResponseUrl = `https://prod.bhaskarapi.com/api/1.0/web-backend/survey/vidhan/${campaignId}/response`
+  const surveyResponseUrl = `https://prod.bhaskarapi.com/api/1.0/web-backend/survey/vidhan/${REPORT_CARD_SURVEY_ID}/response`
   const userPreferenceCitiesUrl =
     "https://prod.bhaskarapi.com/api/3.0/user/prefs/cities"
 
@@ -72,16 +74,14 @@ export function usePrefillDistrictsAndSeat({
     setCanRunPreferencesFallback(false)
 
     console.log("[usePrefillDistrictsAndSeat] restored local storage", {
-      campaignId,
-      districtStorageKey,
-      seatStorageKey,
+        districtStorageKey,
+        seatStorageKey,
       storedDistrict,
       storedSeat,
       parsedDistrict,
       parsedSeat,
     })
   }, [
-    campaignId,
     districtStorageKey,
     seatStorageKey,
     setDistrict,
@@ -104,7 +104,6 @@ export function usePrefillDistrictsAndSeat({
       console.log(
         "[usePrefillDistrictsAndSeat] checking survey response prefill",
         {
-          campaignId,
           hasLocalDistrict,
           hasLocalSeat,
           canReadAppUserData,
@@ -140,8 +139,7 @@ export function usePrefillDistrictsAndSeat({
         console.log(
           "[usePrefillDistrictsAndSeat] survey response api request",
           {
-            campaignId,
-            url: surveyResponseUrl,
+              url: surveyResponseUrl,
             headers: {
               "x-aut-t": "a6oaq3edtz59",
               cid: "521",
@@ -163,7 +161,6 @@ export function usePrefillDistrictsAndSeat({
           `[usePrefillDistrictsAndSeat] API CALL COMPLETED: ${surveyResponseUrl}`
         )
         console.log("[usePrefillDistrictsAndSeat] survey response api status", {
-          campaignId,
           url: surveyResponseUrl,
           status: response.status,
           ok: response.ok,
@@ -177,7 +174,6 @@ export function usePrefillDistrictsAndSeat({
         const responseData = json.response
 
         console.log("[usePrefillDistrictsAndSeat] survey response api body", {
-          campaignId,
           data: json,
         })
 
@@ -221,7 +217,7 @@ export function usePrefillDistrictsAndSeat({
         console.error(
           "[usePrefillDistrictsAndSeat] survey response api failed",
           {
-            campaignId,
+            surveyId: REPORT_CARD_SURVEY_ID,
             url: surveyResponseUrl,
             error,
           }
@@ -241,7 +237,6 @@ export function usePrefillDistrictsAndSeat({
       cancelled = true
     }
   }, [
-    campaignId,
     districtStorageKey,
     getAppUserData,
     methodExists,

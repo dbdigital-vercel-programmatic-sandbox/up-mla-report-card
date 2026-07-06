@@ -1,33 +1,17 @@
-export type TabKey = "1" | "2" | "3" | "4"
-
 export interface MlaTranslations {
-  score: string
-  totalScore: string
-  yourGivenScore: string
   shareButtonText: string
   reportCardProgressBarTitle: string
   optionChosen: string
   chooseDistrict: string
-  chooseMlaSeat: string
-  markingFormula: string
-  scoreOfEveryQuestion: string
-  countingScoreOfMla: string
   checkSurveyResultDescription: string
   surveyResultHeading: string
-  yes: string
-  no: string
-  mlaReportCard: string
   commonShareText: string
-  mlaShareText: string
   districtSheetTitle: string
   districtSearchPlaceholder: string
   seatSheetTitle: string
   seatSearchPlaceholder: string
   seatPlaceholder: string
-  close: string
-  searchDistrict: string
   selectDistrictFirst: string
-  stateMapping: Record<string, string>
   partyNames: Record<string, string>
 }
 
@@ -52,56 +36,19 @@ export interface TemplateContentItem {
   markups?: TemplateMarkup[]
 }
 
-export interface TabItem {
-  id: string
-  displayName: string
-  engName: string
-  shortUrl: string
-}
-
-export interface VideoDetails {
-  storyId: number
-  videoUrl: string
-  duration: number
-  category: {
-    id: number | string
-    nameEn: string
-    displayName: string
-    img: string
-  }
-}
-
-export interface MediaItem {
-  id: string
-  type: "image" | "video"
-  thumbUrl: string
-  sharing: {
-    title: string
-    url: string
-  }
-  videoDetails?: VideoDetails
-  mediaDescription?: TemplateContentItem[]
-}
-
-export interface DynamicMediaOption {
-  id: string
-  title: string
-  media: MediaItem
-}
-
-export interface DynamicMediaData {
-  id: string
-  title: string
-  description: string
-  items: DynamicMediaOption[]
-}
-
 export interface ProgressBar {
   icon?: string
   title: string
   percent: string
   color: string
   opacity?: number
+  bifurcations?: Array<{
+    id: number | string
+    title: string
+    percent: string
+    color: string
+    opacity?: number
+  }>
 }
 
 export interface ProgressSection {
@@ -131,113 +78,24 @@ export interface CardDetails {
   yourGivenScore?: string
 }
 
-export interface ItemDetailListItem {
+export interface SelectedSeatResultListItem {
   id: string
   text: string
   progressDetails: ProgressDetails[]
 }
 
-export interface ItemDetailData {
+export interface SelectedSeatResult {
   cardDetails: CardDetails
-  listItems: ItemDetailListItem[]
-  templateContent?: TemplateContentItem[]
+  listItems: SelectedSeatResultListItem[]
 }
 
-export interface HeaderMediaBlock {
-  type: "media"
-  data: MediaItem
-}
-
-export interface DividerBlock {
-  type: "lineSeparatorWithTitle"
-  data: {
-    id: string
-    title: string
-  }
-}
-
-export interface DynamicMediaBlock {
-  type: "dynamicMedia"
-  data: DynamicMediaData
-}
-
-export interface ProgressBlock {
-  type: "progress"
-  data: {
-    id: string
-    title: string
-    description: string
-    items: ProgressDetails[]
-  }
-}
-
-export interface MlaListBlock {
-  type: "horizontalList" | "verticalList"
-  data: {
-    id: string
-    tag:
-      | "overallTop"
-      | "congressTop"
-      | "BJPTop"
-      | "overallBottom"
-      | "congressBottom"
-      | "BJPBottom"
-    title: string
-    partyIcon?: string
-    canShowTopDivider?: boolean
-    description: string
-  }
-}
-
-export interface ComingSoonBlock {
-  type: "comingSoon"
-  data: {
-    id: string
-    templateContent: TemplateContentItem[]
-  }
-}
-
-export interface RichTextBlock {
-  type: "richText"
-  data: {
-    id: string
-    templateContent: TemplateContentItem[]
-  }
-}
-
-export interface Tab4Block {
-  type: "tab4"
-  data: {
-    id: string
-    title: string
-    description: TemplateContentItem[]
-  }
-}
-
-export type ContentBlock =
-  | HeaderMediaBlock
-  | DividerBlock
-  | DynamicMediaBlock
-  | ProgressBlock
-  | MlaListBlock
-  | ComingSoonBlock
-  | RichTextBlock
-  | Tab4Block
-
-export interface MlaCampaignData {
-  tabs: TabItem[]
+export interface MlaReportCardData {
   meta: {
     deeplink: string
     title: string
     headerText: string
-    day3Deeplink: string
-    day4Deeplink: string
   }
   districts: District[]
-  1: ContentBlock[]
-  2?: ContentBlock[]
-  3?: ContentBlock[]
-  4?: ContentBlock[]
 }
 
 export interface District {
@@ -252,7 +110,7 @@ export interface District {
 export interface Seat {
   id: number
   seat_name: string
-  seat_english_name: string
+  seat_english_name?: string
   tags?: string[]
   mla_info?: {
     name: string
@@ -271,6 +129,11 @@ export interface Question {
     id: number
     text: string
     score: number
+    bifurcations?: Array<{
+      id: number | string
+      text: string
+      score: number
+    }>
   }>
 }
 

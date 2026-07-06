@@ -3,35 +3,22 @@
 
 import type { CSSProperties, ReactNode } from "react"
 import { useMemo, useState } from "react"
+import { ChevronDownIcon } from "lucide-react"
 
 import { useWebviewContext } from "@/bridge"
 
-import arrowDownIcon from "./assets/arrow-down.svg"
 import { SearchSheet } from "./SearchSheet"
-import {
-  ArrowIcon,
-  CloseIcon,
-  PlayIcon,
-  PopupCloseIcon,
-  TapHandIcon,
-  TallyArrowIcon,
-  WhatsappIcon,
-} from "./icons"
+import { PopupCloseIcon, TapHandIcon, TallyArrowIcon, WhatsappIcon } from "./icons"
 import styles from "./mla-report-card.module.css"
 import {
   getSelectedSeat,
-  renderTemplateContent,
   shareCommon,
-  shareMla,
   triggerContentFilterAddedEvent,
   type WebviewBridgeActions,
 } from "./utils"
 import { usePrefillDistrictsAndSeat } from "./usePrefillDistrictsAndSeat"
 import type {
-  DynamicMediaData,
-  ItemDetailData,
-  MediaItem,
-  MlaCampaignData,
+  MlaReportCardData,
   MlaTranslations,
   ProgressDetails,
 } from "./types"
@@ -81,16 +68,6 @@ function makeTextVariants(text: string) {
   return new Set([trimmed, noBrackets.trim(), compact, noSpace].filter(Boolean))
 }
 
-function formatDuration(seconds?: number) {
-  if (!seconds) {
-    return null
-  }
-
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, "0")}`
-}
-
 export function ProgressReport({
   items,
   title,
@@ -108,6 +85,10 @@ export function ProgressReport({
   highlightTerms?: string[]
   renderItemHeader?: (item: ProgressDetails, index: number) => ReactNode
 }) {
+  const [accordionState, setAccordionState] = useState<Record<string, boolean>>(
+    {}
+  )
+
   const boldNumberAndFollowingWord = (text: string) => {
     const words = text.split(/\s+/)
     const result: ReactNode[] = []
@@ -208,26 +189,111 @@ export function ProgressReport({
                   <span>{boldNumberAndFollowingWord(section.description)}</span>
                 </p>
               ) : null}
-              {section.progressBars.map((bar) => (
-                <div key={bar.title} className={styles.progressBarRow}>
-                  <div className={styles.progressBarTrack}>
-                    <span className={styles.progressBarTitleText}>
-                      {bar.title}
-                    </span>
-                    <div
-                      className={styles.progressBarFill}
-                      style={{
-                        width: bar.percent,
-                        backgroundColor: bar.color,
-                        opacity: bar.opacity,
-                      }}
-                    />
-                    <span className={styles.progressBarValueText}>
-                      {bar.percent}
-                    </span>
+              {section.progressBars.map((bar, barIndex) => {
+                const bifurcations = bar.bifurcations ?? []
+                const hasBifurcations = bifurcations.length > 0
+                const accordionKey = `${item.title ?? "progress"}-${index}-${sectionIndex}-${bar.title}`
+                const firstBifurcationIndex = section.progressBars.findIndex(
+                  (progressBar) => (progressBar.bifurcations?.length ?? 0) > 0
+                )
+                const isOpen =
+                  accordionState[accordionKey] ??
+                  (hasBifurcations && barIndex === firstBifurcationIndex)
+
+                return (
+                  <div key={bar.title} className={styles.progressBarRow}>
+                    {hasBifurcations ? (
+                      <div className={styles.progressAccordion}>
+                        <div className={styles.progressAccordionHeader}>
+                          <div className={styles.progressBarTrack}>
+                            <span className={styles.progressBarTitleText}>
+                              {bar.title}
+                            </span>
+                            <div
+                              className={styles.progressBarFill}
+                              style={{
+                                width: bar.percent,
+                                backgroundColor: bar.color,
+                                opacity: bar.opacity,
+                              }}
+                            />
+                            <span className={styles.progressBarValueText}>
+                              {bar.percent}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.progressAccordionButton}
+                            aria-expanded={isOpen}
+                            onClick={() =>
+                              setAccordionState((current) => ({
+                                ...current,
+                                [accordionKey]: !isOpen,
+                              }))
+                            }
+                          >
+                            <ChevronDownIcon
+                              className={styles.progressAccordionIcon}
+                              style={
+                                {
+                                  "--foreground-color": "var(--primary-color)",
+                                  transform: isOpen
+                                    ? "rotate(180deg)"
+                                    : "rotate(0deg)",
+                                } as CSSProperties
+                              }
+                            />
+                          </button>
+                        </div>
+                        {isOpen ? (
+                          <div className={styles.bifurcationList}>
+                            {bifurcations.map((bifurcation) => (
+                              <div
+                                key={bifurcation.id}
+                                className={styles.bifurcationRow}
+                              >
+                                <div className={styles.bifurcationTrack}>
+                                  <span className={styles.bifurcationTitleText}>
+                                    {bifurcation.title}
+                                  </span>
+                                  <div
+                                    className={styles.bifurcationFill}
+                                    style={{
+                                      width: bifurcation.percent,
+                                      backgroundColor: bifurcation.color,
+                                      opacity: bifurcation.opacity,
+                                    }}
+                                  />
+                                  <span className={styles.bifurcationValueText}>
+                                    {bifurcation.percent}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className={styles.progressBarTrack}>
+                        <span className={styles.progressBarTitleText}>
+                          {bar.title}
+                        </span>
+                        <div
+                          className={styles.progressBarFill}
+                          style={{
+                            width: bar.percent,
+                            backgroundColor: bar.color,
+                            opacity: bar.opacity,
+                          }}
+                        />
+                        <span className={styles.progressBarValueText}>
+                          {bar.percent}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ))}
           {item.footerDescription ? (
@@ -264,494 +330,14 @@ export function ProgressReport({
   )
 }
 
-export function MlaCard({
-  item,
-  layout,
-  scoreLabel,
-  onClick,
-}: {
-  item: ItemDetailData["cardDetails"]
-  layout: "horizontal" | "vertical"
-  scoreLabel: string
-  onClick: (id: string) => void
-}) {
-  if (layout === "horizontal") {
-    return (
-      <button
-        type="button"
-        className={styles.horizontalCard}
-        onClick={() => onClick(item.id)}
-      >
-        <div className={styles.horizontalLabelContainer}>
-          {item.tag?.label ? (
-            <p className={styles.horizontalItemTag}>{item.tag.label}</p>
-          ) : null}
-        </div>
-        {item.imageUrl ? (
-          <div className={styles.horizontalItemImage}>
-            <img
-              src={item.imageUrl}
-              alt={item.title ?? ""}
-              className={styles.cardImage}
-            />
-          </div>
-        ) : null}
-        <div className={styles.horizontalItemContent}>
-          {item.title ? (
-            <h4 className={styles.horizontalCardTitle}>{item.title}</h4>
-          ) : null}
-          <p className={styles.horizontalCardSubTitle}>{item.subTitle}</p>
-          <div className={styles.horizontalDivider} />
-          <div className={styles.horizontalItemPercentage}>
-            <div>
-              {item.percentage ? (
-                <>
-                  {item.percentage}
-                  <span className={styles.horizontalScoreTag}>
-                    {` ${scoreLabel}`}
-                  </span>
-                </>
-              ) : null}
-            </div>
-            <ArrowIcon
-              className={styles.cardArrowIcon}
-              style={
-                {
-                  "--foreground-color": "var(--secondary-color)",
-                  transform: "rotate(180deg)",
-                  width: "30px",
-                  height: "30px",
-                } as CSSProperties
-              }
-            />
-          </div>
-        </div>
-      </button>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      className={styles.verticalCard}
-      onClick={() => onClick(item.id)}
-    >
-      {item.imageUrl ? (
-        <div className={styles.verticalItemImage}>
-          <img
-            src={item.imageUrl}
-            alt={item.title ?? ""}
-            className={styles.cardImage}
-          />
-          {item.smallImageUrl ? (
-            <img
-              src={item.smallImageUrl}
-              alt={item.partyName ?? ""}
-              className={styles.partyBadge}
-            />
-          ) : null}
-        </div>
-      ) : null}
-      <div className={styles.verticalItemContent}>
-        {item.title ? (
-          <h4 className={styles.verticalTitle}>{item.title}</h4>
-        ) : null}
-        {item.tag?.label ? (
-          <span className={styles.verticalItemTag}>{item.tag.label}</span>
-        ) : null}
-        <p className={styles.verticalSubTitle}>{item.subTitle}</p>
-      </div>
-      <div className={styles.verticalAside}>
-        <div>
-          {item.percentage ? item.percentage : null}
-          {item.percentage ? (
-            <p className={styles.verticalScoreTag}>{scoreLabel}</p>
-          ) : null}
-        </div>
-        <ArrowIcon
-          className={styles.cardArrowIcon}
-          style={
-            {
-              "--foreground-color": "var(--secondary-color)",
-              transform: "rotate(180deg)",
-              width: "30px",
-              height: "30px",
-              marginLeft: "12px",
-            } as CSSProperties
-          }
-        />
-      </div>
-    </button>
-  )
-}
-
-export function MediaBlock({
-  media,
-  shareLabel,
-  onShare,
-}: {
-  media: MediaItem
-  shareLabel: string
-  onShare: () => void
-}) {
-  const [isPlaying, setIsPlaying] = useState(false)
-
-  return (
-    <section className={styles.mediaBlock}>
-      {media.type === "video" && media.videoDetails?.videoUrl && isPlaying ? (
-        <div className={styles.mediaFrame}>
-          <video
-            controls
-            autoPlay
-            poster={media.thumbUrl}
-            className={styles.mediaVisual}
-          >
-            <source src={media.videoDetails.videoUrl} />
-          </video>
-          {formatDuration(media.videoDetails.duration) ? (
-            <span className={styles.mediaDuration}>
-              {formatDuration(media.videoDetails.duration)}
-            </span>
-          ) : null}
-        </div>
-      ) : (
-        <button
-          type="button"
-          className={styles.mediaFrameButton}
-          onClick={() => {
-            if (media.type === "video" && media.videoDetails?.videoUrl) {
-              setIsPlaying(true)
-            }
-          }}
-        >
-          <div className={styles.mediaFrame}>
-            <img
-              src={media.thumbUrl}
-              alt={media.sharing.title || "MLA Report Card"}
-              className={styles.mediaVisual}
-            />
-            {media.type === "video" ? (
-              <PlayIcon className={styles.playIcon} />
-            ) : null}
-            {media.type === "video" &&
-            formatDuration(media.videoDetails?.duration) ? (
-              <span className={styles.mediaDuration}>
-                {formatDuration(media.videoDetails?.duration)}
-              </span>
-            ) : null}
-          </div>
-        </button>
-      )}
-
-      <button type="button" className={styles.shareButton} onClick={onShare}>
-        <WhatsappIcon
-          className={styles.shareIconSvg}
-          style={
-            { "--foreground-color": "var(--secondary-color)" } as CSSProperties
-          }
-        />
-        {shareLabel}
-      </button>
-
-      {media.type === "video" && media.mediaDescription?.length ? (
-        <div className={styles.richText}>
-          {renderTemplateContent(media.mediaDescription)}
-        </div>
-      ) : null}
-    </section>
-  )
-}
-
-export function DynamicMediaBlock({
+export function MlaReportCardSection({
   data,
-  translations,
-  onSelectionChange,
-  onShare,
-}: {
-  data: DynamicMediaData
-  translations: MlaTranslations
-  onSelectionChange: (title: string) => void
-  onShare: () => void
-}) {
-  const [selectedId, setSelectedId] = useState(data.items[0]?.id ?? "")
-
-  const selectedItem =
-    data.items.find((item) => item.id === selectedId) ?? data.items[0]
-
-  if (!selectedItem) {
-    return null
-  }
-
-  return (
-    <section className={styles.dynamicBlock}>
-      <div className={styles.sectionHeader}>
-        <h3 className={styles.sectionTitle}>{data.title}</h3>
-        <p className={styles.sectionDescription}>{data.description}</p>
-      </div>
-
-      {data.items.length > 1 ? (
-        <div className={styles.selectWrap}>
-          <div className={styles.selectContainer}>
-            <select
-              className={styles.select}
-              value={selectedId}
-              onChange={(event) => {
-                const item = data.items.find(
-                  (entry) => entry.id === event.target.value
-                )
-                if (item) {
-                  onSelectionChange(item.title)
-                }
-                setSelectedId(event.target.value)
-              }}
-            >
-              {data.items.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title}
-                </option>
-              ))}
-            </select>
-            <img
-              src={arrowDownIcon.src}
-              alt=""
-              className={styles.selectArrow}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      <MediaBlock
-        media={selectedItem.media}
-        shareLabel={translations.shareButtonText}
-        onShare={onShare}
-      />
-    </section>
-  )
-}
-
-export function ItemDetail({
-  item,
-  translations,
-  deeplink,
-  contentTitle,
-  source,
-  closeLabel,
-  onClose,
-  mode = "overlay",
-}: {
-  item: ItemDetailData
-  translations: MlaTranslations
-  deeplink: string
-  contentTitle: string
-  source: string
-  closeLabel: string
-  onClose: () => void
-  mode?: "overlay" | "inline"
-}) {
-  const {
-    isWebview,
-    methodExists,
-    trackMixpanelEvent,
-    trackInteractivePage,
-    shareArticle,
-  } = useWebviewContext()
-  const bridgeActions = useMemo<WebviewBridgeActions>(
-    () => ({
-      isWebview,
-      methodExists,
-      trackMixpanelEvent,
-      trackInteractivePage,
-      shareArticle,
-    }),
-    [
-      isWebview,
-      methodExists,
-      trackMixpanelEvent,
-      trackInteractivePage,
-      shareArticle,
-    ]
-  )
-  const noPercent = item.cardDetails.percentage?.replace("%", "") ?? "0"
-
-  return (
-    <div
-      className={
-        mode === "overlay" ? styles.detailOverlay : styles.inlineDetail
-      }
-    >
-      <div className={styles.detailCard}>
-        {mode === "overlay" ? (
-          <div className={styles.detailHeader}>
-            <div className={styles.detailHeaderActions}>
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label={translations.shareButtonText}
-                onClick={() =>
-                  shareMla({
-                    bridgeActions,
-                    deeplink,
-                    contentTitle,
-                    source,
-                    category: "MLA Page",
-                    subSource: item.cardDetails.subTitle,
-                    constituencyName:
-                      item.cardDetails.subTitle.split(",")[0] ?? "",
-                    candidateName: item.cardDetails.title ?? "",
-                    translations,
-                  })
-                }
-              >
-                <WhatsappIcon
-                  className={styles.detailHeaderIcon}
-                  style={
-                    {
-                      "--foreground-color": "var(--primary-color)",
-                    } as CSSProperties
-                  }
-                />
-              </button>
-              <div className={styles.detailHeaderTitle}>
-                {translations.mlaReportCard}
-              </div>
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label={closeLabel}
-                onClick={onClose}
-              >
-                <CloseIcon
-                  className={styles.detailHeaderIcon}
-                  style={
-                    {
-                      "--foreground-color": "var(--primary-color)",
-                    } as CSSProperties
-                  }
-                />
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <div className={styles.detailTop}>
-          {item.cardDetails.imageUrl ? (
-            <img
-              src={item.cardDetails.imageUrl}
-              alt={item.cardDetails.title ?? ""}
-              className={styles.detailImage}
-            />
-          ) : null}
-          {item.cardDetails.title ? (
-            <h2 className={styles.detailName}>{item.cardDetails.title}</h2>
-          ) : null}
-          {item.cardDetails.tag?.label ? (
-            <span className={styles.rankTag}>{item.cardDetails.tag.label}</span>
-          ) : null}
-          {item.cardDetails.smallImageUrl || item.cardDetails.partyName ? (
-            <div className={styles.detailPartyRow}>
-              {item.cardDetails.smallImageUrl ? (
-                <img
-                  src={item.cardDetails.smallImageUrl}
-                  alt={item.cardDetails.partyName ?? ""}
-                  className={styles.detailPartyImage}
-                />
-              ) : null}
-              {item.cardDetails.partyName ? (
-                <span>{item.cardDetails.partyName}</span>
-              ) : null}
-            </div>
-          ) : null}
-          <p className={styles.detailSubtitle}>{item.cardDetails.subTitle}</p>
-        </div>
-
-        {item.cardDetails.percentage ? (
-          <div className={styles.scoreGrid}>
-            <div>
-              <div className={styles.scoreValue}>
-                {item.cardDetails.percentage}
-              </div>
-              <div className={styles.scoreLegend}>👍 {translations.yes}</div>
-            </div>
-            <div className={styles.scoreCenter}>{translations.totalScore}</div>
-            <div>
-              <div
-                className={styles.scoreValue}
-              >{`${100 - Number(noPercent)}%`}</div>
-              <div className={styles.scoreLegend}>{translations.no} 👎</div>
-            </div>
-          </div>
-        ) : null}
-
-        {item.cardDetails.yourGivenScore ? (
-          <div className={styles.scoreGrid}>
-            <div>
-              <div className={styles.scoreValue}>
-                {item.cardDetails.yourGivenScore}
-              </div>
-              <div className={styles.scoreLegend}>👍 {translations.yes}</div>
-            </div>
-            <div className={styles.scoreCenter}>
-              {translations.yourGivenScore}
-            </div>
-            <div>
-              <div className={styles.scoreValue}>
-                {`${100 - Number(item.cardDetails.yourGivenScore.replace("%", ""))}%`}
-              </div>
-              <div className={styles.scoreLegend}>{translations.no} 👎</div>
-            </div>
-          </div>
-        ) : null}
-
-        {mode === "inline" ? null : (
-          <button
-            type="button"
-            className={styles.shareButton}
-            onClick={() =>
-              shareMla({
-                bridgeActions,
-                deeplink,
-                contentTitle,
-                source,
-                category: "MLA Page",
-                subSource: item.cardDetails.subTitle,
-                constituencyName: item.cardDetails.subTitle.split(",")[0] ?? "",
-                candidateName: item.cardDetails.title ?? "",
-                translations,
-              })
-            }
-          >
-            <WhatsappIcon
-              className={styles.shareIconSvg}
-              style={
-                { "--foreground-color": "var(--white-color)" } as CSSProperties
-              }
-            />
-            {translations.shareButtonText}
-          </button>
-        )}
-
-        <div className={styles.detailDivider} />
-        {item.listItems.map((listItem) => (
-          <div key={listItem.id} className={styles.detailSection}>
-            <h3 className={styles.sectionTitle}>{listItem.text}</h3>
-            <ProgressReport items={listItem.progressDetails} />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-export function Tab4Section({
-  campaignId,
-  campaignData,
   translations,
   source,
   openDropdownId,
   onToggleDropdown,
 }: {
-  campaignId: string
-  campaignData: MlaCampaignData
+  data: MlaReportCardData
   translations: MlaTranslations
   source: string
   openDropdownId: string | null
@@ -775,15 +361,14 @@ export function Tab4Section({
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null)
   const { userResponse, districtStorageKey, seatStorageKey } =
     usePrefillDistrictsAndSeat({
-      campaignId,
-      districts: campaignData.districts,
+      districts: data.districts,
       setDistrict: setSelectedDistrictId,
       setVidhanSeat: setSelectedSeatId,
     })
 
   const districtOptions = useMemo(
     () =>
-      [...campaignData.districts]
+      [...data.districts]
         .sort((left, right) => {
           if (left.district_english_name && right.district_english_name) {
             return left.district_english_name.localeCompare(
@@ -798,11 +383,11 @@ export function Tab4Section({
           name: district.district_name,
           englishName: district.district_english_name ?? district.district_name,
         })),
-    [campaignData.districts]
+    [data.districts]
   )
 
   const seatOptions =
-    campaignData.districts
+    data.districts
       .find((district) => district.id === selectedDistrictId)
       ?.seats.map((seat) => ({
         id: seat.id,
@@ -814,7 +399,7 @@ export function Tab4Section({
   const selectedItem = selectedSeatId
     ? getSelectedSeat(
         selectedSeatId.toString(),
-        campaignData,
+        data,
         translations,
         userResponse ?? undefined
       )
@@ -948,8 +533,8 @@ export function Tab4Section({
             onShareItem={(progressItem) =>
               shareCommon({
                 bridgeActions,
-                deeplink: campaignData.meta.deeplink,
-                contentTitle: campaignData.meta.title,
+                deeplink: data.meta.deeplink,
+                contentTitle: data.meta.title,
                 source,
                 category: "MLA Page",
                 subSource:
@@ -1005,7 +590,7 @@ export function Tab4Section({
                     bridgeActions,
                     source,
                     district: district.englishName,
-                    contentTitle: campaignData.meta.title || "",
+                    contentTitle: data.meta.title || "",
                   })
                   setSelectedDistrictId(district.id)
                   setSelectedSeatId(null)
@@ -1031,7 +616,7 @@ export function Tab4Section({
                         districtOptions.find(
                           (district) => district.id === selectedDistrictId
                         )?.name ?? "",
-                      "Content Title": campaignData.meta.title,
+                      "Content Title": data.meta.title,
                       "Content Type": "Interactive Survey",
                     },
                   }

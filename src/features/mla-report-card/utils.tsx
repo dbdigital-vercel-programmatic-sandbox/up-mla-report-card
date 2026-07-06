@@ -1,13 +1,10 @@
-import type { ReactNode } from "react"
-
 import type {
   District,
-  ItemDetailData,
-  MlaCampaignData,
+  MlaReportCardData,
   MlaTranslations,
   ProgressDetails,
   Question,
-  TemplateContentItem,
+  SelectedSeatResult,
   UserResponse,
 } from "./types"
 
@@ -16,7 +13,6 @@ const PARTY_ICON_BASE =
 const MLA_IMAGE_BASE =
   "https://images.bhaskarassets.com/web2images/web-frontend/mla-report-card/mla"
 export const CONTENT_TYPE = "Interactive Survey"
-export const CONTENT_TITLE = "Interactive Survey Result"
 
 export type WebviewBridgeActions = {
   isWebview: boolean
@@ -38,68 +34,9 @@ export type WebviewBridgeActions = {
     hasWatermark?: boolean
   ) => void
 }
-type MlaListTag =
-  | "overallTop"
-  | "congressTop"
-  | "BJPTop"
-  | "overallBottom"
-  | "congressBottom"
-  | "BJPBottom"
 
 function getScorePercent(score: number) {
   return `${score}%`
-}
-
-function renderMarkupText(item: TemplateContentItem) {
-  if (!item.markups?.length) {
-    return item.text
-  }
-
-  const boldRanges = item.markups
-    .filter((markup) => markup.mType === "bold")
-    .sort((left, right) => left.start - right.start)
-
-  if (boldRanges.length === 0) {
-    return item.text
-  }
-
-  const nodes: ReactNode[] = []
-  let cursor = 0
-
-  boldRanges.forEach((range, index) => {
-    if (range.start > cursor) {
-      nodes.push(item.text.slice(cursor, range.start))
-    }
-
-    nodes.push(
-      <strong key={`${item.hash}-bold-${index}`}>
-        {item.text.slice(range.start, range.end)}
-      </strong>
-    )
-    cursor = range.end
-  })
-
-  if (cursor < item.text.length) {
-    nodes.push(item.text.slice(cursor))
-  }
-
-  return nodes
-}
-
-export function renderTemplateContent(items: TemplateContentItem[]) {
-  return items.map((item) => {
-    if (item.type === "ul") {
-      return (
-        <ul key={item.hash}>
-          {item.items.map((listItem, index) => (
-            <li key={`${item.hash}-${index}`}>{listItem.text}</li>
-          ))}
-        </ul>
-      )
-    }
-
-    return <p key={item.hash}>{renderMarkupText(item)}</p>
-  })
 }
 
 export function triggerContentOpenedEvent(
@@ -161,35 +98,6 @@ export function triggerContentConsumedEvent(
 
   console.log(payload)
   bridgeActions.trackInteractivePage(payload)
-}
-
-export function triggerContentItemClickedEvent(clickedEvent: {
-  bridgeActions: WebviewBridgeActions
-  source: string
-  subSource: string
-  contentTitle: string
-  category: "Top Buttons" | "Filters"
-}) {
-  if (
-    !clickedEvent.bridgeActions.isWebview ||
-    !clickedEvent.bridgeActions.methodExists(["trackMixpanelEvent"]).or
-  ) {
-    return
-  }
-
-  const payload = {
-    event: "Interactive Content Item Clicked",
-    properties: {
-      Source: clickedEvent.source,
-      "Sub Source": clickedEvent.subSource,
-      Category: clickedEvent.category,
-      "Content Type": CONTENT_TYPE,
-      "Content Title": clickedEvent.contentTitle,
-    },
-  }
-
-  console.log(payload)
-  clickedEvent.bridgeActions.trackMixpanelEvent(payload)
 }
 
 export function triggerContentFilterAddedEvent(filterEvent: {
@@ -255,88 +163,11 @@ export function shareCommon(args: {
   )
 }
 
-export function shareMla(args: {
-  bridgeActions: WebviewBridgeActions
-  deeplink: string
-  contentTitle: string
-  source: string
-  category: string
-  subSource: string
-  constituencyName: string
-  candidateName: string
-  translations: MlaTranslations
-}) {
-  if (!args.bridgeActions.isWebview) {
-    return
-  }
-
-  const payload = {
-    event: "Content Shared",
-    properties: {
-      Source: args.source,
-      "Content Title": args.contentTitle,
-      "Content Type": CONTENT_TYPE,
-      Category: args.category,
-      "Sub Source": args.subSource,
-    },
-  }
-
-  console.log(payload)
-  args.bridgeActions.trackMixpanelEvent(payload)
-
-  const stateCode = args.contentTitle.split(
-    " "
-  )[0] as keyof typeof args.translations.stateMapping
-  const sharingText = args.translations.mlaShareText
-    .replace("$$ConstituencyName$$", args.constituencyName)
-    .replace("$$CandidateName$$", args.candidateName)
-    .replace(
-      "$$StateName$$",
-      args.translations.stateMapping[stateCode] ||
-        args.translations.stateMapping.MP
-    )
-
-  args.bridgeActions.shareArticle(
-    args.deeplink,
-    sharingText,
-    "",
-    CONTENT_TYPE,
-    `${sharingText}${args.deeplink}`
-  )
-}
-
-export function getPartyIcon(party: string, translations: MlaTranslations) {
+function getPartyIcon(party: string, translations: MlaTranslations) {
   return translations.partyNames[party] ?? "Others"
 }
 
-export function getMarkingFormula(
-  translations: MlaTranslations
-): TemplateContentItem[] {
-  return [
-    {
-      hash: "1",
-      type: "paragraph",
-      text: translations.markingFormula,
-      url: "",
-      items: [],
-      markups: [
-        { mType: "bold", start: 0, end: translations.markingFormula.length },
-      ],
-    },
-    {
-      hash: "2",
-      type: "ul",
-      text: "",
-      url: "",
-      items: [
-        { type: "li", text: translations.scoreOfEveryQuestion },
-        { type: "li", text: translations.countingScoreOfMla },
-      ],
-    },
-  ]
-}
-
-export function buildCardDetails(
+function buildCardDetails(
   district: District,
   seat: District["seats"][number],
   translations: MlaTranslations
@@ -392,8 +223,6 @@ function buildQuestionProgress(
 
     return bestOption
   }, undefined)
-  // For the first question with MLA info, preserve the source option order and
-  // highlight only the highest-scoring option instead of the first one.
   const shouldHighlightTopOption = isFirstQuestion && hasMlaInfo
 
   const progressBars = question.options.map((option, index) => ({
@@ -407,6 +236,13 @@ function buildQuestionProgress(
           : "#BEBEBE",
     opacity: 0.3,
     icon: "",
+    bifurcations: option.bifurcations?.map((bifurcation, bifurcationIndex) => ({
+      id: bifurcation.id,
+      title: bifurcation.text,
+      percent: getScorePercent(bifurcation.score),
+      color: bifurcationIndex === 0 ? "#8BC66F" : "#BEBEBE",
+      opacity: 0.3,
+    })),
   }))
 
   const detail: ProgressDetails = {
@@ -434,11 +270,11 @@ function buildQuestionProgress(
 
 export function getSelectedSeat(
   vidhanId: string,
-  campaignData: MlaCampaignData,
+  data: MlaReportCardData,
   translations: MlaTranslations,
   userResponse?: UserResponse
-): ItemDetailData | null {
-  for (const district of campaignData.districts) {
+): SelectedSeatResult | null {
+  for (const district of data.districts) {
     for (const seat of district.seats) {
       if (seat.id.toString() !== vidhanId) {
         continue
@@ -461,51 +297,9 @@ export function getSelectedSeat(
             ),
           },
         ],
-        templateContent: getMarkingFormula(translations),
       }
     }
   }
 
   return null
-}
-
-export function getTransformedMlaListForCards(
-  tag: MlaListTag,
-  districts: District[],
-  translations: MlaTranslations
-) {
-  const cards = districts.flatMap((district) =>
-    district.seats
-      .filter((seat) => seat.tags?.includes(tag))
-      .map((seat) => buildCardDetails(district, seat, translations))
-  )
-
-  return cards.sort((left, right) => {
-    const leftScore = Number(left.percentage?.replace("%", "") ?? "0")
-    const rightScore = Number(right.percentage?.replace("%", "") ?? "0")
-    return tag.endsWith("Top") ? rightScore - leftScore : leftScore - rightScore
-  })
-}
-
-export async function shareContent({
-  title,
-  text,
-  url,
-}: {
-  title: string
-  text: string
-  url: string
-}) {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  if (navigator.share) {
-    await navigator.share({ title, text, url })
-    return
-  }
-
-  const shareText = `${text}${url}`
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
-  window.open(whatsappUrl, "_blank", "noopener,noreferrer")
 }
