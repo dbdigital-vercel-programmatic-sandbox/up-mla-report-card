@@ -247,6 +247,11 @@ export function ProgressReport({
                         </div>
                         {isOpen ? (
                           <div className={styles.bifurcationList}>
+                            {bar.bifurcationTitle ? (
+                              <div className={styles.bifurcationQuestionTitle}>
+                                {renderHighlightedTitle(bar.bifurcationTitle)}
+                              </div>
+                            ) : null}
                             {bifurcations.map((bifurcation) => (
                               <div
                                 key={bifurcation.id}

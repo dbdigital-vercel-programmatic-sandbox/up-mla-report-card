@@ -639,6 +639,13 @@
   margin-top: 10px;
 }
 
+.bifurcationQuestionTitle {
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
 .bifurcationTrack {
   position: relative;
   overflow: hidden;

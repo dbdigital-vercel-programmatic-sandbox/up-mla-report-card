@@ -10,8 +10,7 @@ import type {
 
 const PARTY_ICON_BASE =
   "https://images.bhaskarassets.com/web2images/web-frontend/mla-report-card/party"
-const MLA_IMAGE_BASE =
-  "https://images.bhaskarassets.com/web2images/web-frontend/mla-report-card/mla"
+const MLA_IMAGE_BASE = "/mla-report-card/mla"
 export const CONTENT_TYPE = "Interactive Survey"
 
 export type WebviewBridgeActions = {
@@ -225,7 +224,10 @@ function buildQuestionProgress(
   }, undefined)
   const shouldHighlightTopOption = isFirstQuestion && hasMlaInfo
 
-  const progressBars = question.options.map((option, index) => ({
+  const progressBars = question.options.map((option, index) => {
+    const bifurcations = option.dependentQuestion?.options ?? option.bifurcations
+
+    return {
     title: option.text,
     percent: getScorePercent(option.score),
     color:
@@ -236,14 +238,16 @@ function buildQuestionProgress(
           : "#BEBEBE",
     opacity: 0.3,
     icon: "",
-    bifurcations: option.bifurcations?.map((bifurcation, bifurcationIndex) => ({
+    bifurcationTitle: option.dependentQuestion?.text,
+    bifurcations: bifurcations?.map((bifurcation, bifurcationIndex) => ({
       id: bifurcation.id,
       title: bifurcation.text,
       percent: getScorePercent(bifurcation.score),
       color: bifurcationIndex === 0 ? "#8BC66F" : "#BEBEBE",
       opacity: 0.3,
     })),
-  }))
+    }
+  })
 
   const detail: ProgressDetails = {
     title: question.text,

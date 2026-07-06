@@ -19,9 +19,11 @@ export const mlaTranslations: MlaTranslations = {
   partyNames: {
     कांग्रेस: "Congress",
     भाजपा: "BJP",
+    भााजपा: "BJP",
+    निर्दलीय: "Others",
+    बसपा: "BSP",
     बीएपी: "BAP",
     आरएलडी: "RLD",
-    बसपा: "BSP",
     जीजीपी: "GondwanaGanatantraParty",
     सपा: "SP",
     "जनसत्ता दल लोकतांत्रिक": "JDL",

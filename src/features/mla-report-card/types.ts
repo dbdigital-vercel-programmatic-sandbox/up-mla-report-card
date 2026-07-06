@@ -42,6 +42,7 @@ export interface ProgressBar {
   percent: string
   color: string
   opacity?: number
+  bifurcationTitle?: string
   bifurcations?: Array<{
     id: number | string
     title: string
@@ -129,6 +130,15 @@ export interface Question {
     id: number
     text: string
     score: number
+    dependentQuestion?: {
+      id: number
+      text: string
+      options: Array<{
+        id: number | string
+        text: string
+        score: number
+      }>
+    }
     bifurcations?: Array<{
       id: number | string
       text: string
