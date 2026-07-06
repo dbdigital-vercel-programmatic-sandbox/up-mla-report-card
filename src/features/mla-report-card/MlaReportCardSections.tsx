@@ -85,9 +85,9 @@ export function ProgressReport({
   highlightTerms?: string[]
   renderItemHeader?: (item: ProgressDetails, index: number) => ReactNode
 }) {
-  const [accordionState, setAccordionState] = useState<Record<string, boolean>>(
-    {}
-  )
+  const [openAccordionByGroup, setOpenAccordionByGroup] = useState<
+    Record<string, string>
+  >({})
 
   const boldNumberAndFollowingWord = (text: string) => {
     const words = text.split(/\s+/)
@@ -193,11 +193,14 @@ export function ProgressReport({
                 const bifurcations = bar.bifurcations ?? []
                 const hasBifurcations = bifurcations.length > 0
                 const accordionKey = `${item.title ?? "progress"}-${index}-${sectionIndex}-${bar.title}`
+                const accordionGroupKey = `${item.title ?? "progress"}-${index}-${sectionIndex}`
                 const firstBifurcationIndex = section.progressBars.findIndex(
                   (progressBar) => (progressBar.bifurcations?.length ?? 0) > 0
                 )
                 const isOpen =
-                  accordionState[accordionKey] ??
+                  openAccordionByGroup[accordionGroupKey]
+                    ? openAccordionByGroup[accordionGroupKey] === accordionKey
+                    :
                   (hasBifurcations && barIndex === firstBifurcationIndex)
 
                 return (
@@ -226,9 +229,9 @@ export function ProgressReport({
                             className={styles.progressAccordionButton}
                             aria-expanded={isOpen}
                             onClick={() =>
-                              setAccordionState((current) => ({
+                              setOpenAccordionByGroup((current) => ({
                                 ...current,
-                                [accordionKey]: !isOpen,
+                                [accordionGroupKey]: accordionKey,
                               }))
                             }
                           >
